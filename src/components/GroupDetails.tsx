@@ -15,6 +15,7 @@ export function GroupDetails() {
 	const navigate = useNavigate();
 	const token = localStorage.getItem("token") || "";
 
+	const [group, setGroup] = useState<Group | null>(null);
 	const [groupName, setGroupName] = useState(
 		"Carregando grupo...",
 	);
@@ -22,6 +23,8 @@ export function GroupDetails() {
 	const [users, setUsers] = useState<User[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
+	const [inviteEmail, setInviteEmail] = useState("");
+	const [inviting, setInviting] = useState(false);
 
 	const userId = useMemo(() => {
 		if (!token) return null;
@@ -70,6 +73,7 @@ export function GroupDetails() {
 						(g: Group) => g.id === groupId,
 					);
 					if (currentGroup) {
+						setGroup(currentGroup);
 						setGroupName(currentGroup.name);
 					} else {
 						setGroupName("Detalhes do Grupo");
@@ -111,12 +115,59 @@ export function GroupDetails() {
 				},
 			);
 			if (res.ok) {
-				// Atualizar as ideias para mostrar que foi curtido (simulação caso a API não retorne atualizado)
-				// O ideal seria fazer um refetch ou atualizar o contador de likes no estado
 				alert("Ideia curtida!");
 			}
 		} catch (err) {
 			console.error("Erro ao curtir a ideia", err);
+		}
+	};
+
+	const handleInviteUser = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!inviteEmail.trim() || !userId) return;
+
+		setInviting(true);
+		try {
+			// 1. Busca o usuário pelo e-mail
+			const usersRes = await fetch(`http://localhost:3333/users?email=${encodeURIComponent(inviteEmail.trim())}`);
+			if (!usersRes.ok) {
+				throw new Error("Erro ao buscar usuário pelo e-mail");
+			}
+			
+			const usersData = await usersRes.json();
+			if (!usersData || usersData.length === 0) {
+				alert("Nenhum usuário encontrado com este e-mail.");
+				return;
+			}
+			
+			const receiverId = usersData[0].id;
+
+			// 2. Envia o convite
+			const res = await fetch("http://localhost:3333/invites", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: authHeader,
+				},
+				body: JSON.stringify({
+					groupId,
+					senderId: userId,
+					receiverId,
+				}),
+			});
+
+			if (res.ok) {
+				alert("Convite enviado com sucesso!");
+				setInviteEmail("");
+			} else {
+				const data = await res.json();
+				alert(`Erro ao enviar convite: ${data.message || "Erro desconhecido"}`);
+			}
+		} catch (err) {
+			console.error(err);
+			alert("Erro ao enviar convite.");
+		} finally {
+			setInviting(false);
 		}
 	};
 
@@ -291,6 +342,49 @@ export function GroupDetails() {
 						</div>
 
 						<aside className="lg:w-80 space-y-6 pt-8 mt-8 border-t border-gray-200 dark:border-gray-700 lg:border-t-0 lg:pt-0 lg:mt-0 lg:border-l lg:pl-8 flex-shrink-0">
+							{group?.adminId === userId && (
+								<div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-indigo-100 dark:border-indigo-900 shadow-sm mb-6">
+									<h3 className="font-bold text-indigo-900 dark:text-indigo-300 mb-3 text-sm uppercase tracking-wider">
+										Painel do Admin
+									</h3>
+									<form
+										onSubmit={handleInviteUser}
+										className="space-y-3"
+									>
+										<div>
+											<label
+												htmlFor="inviteEmail"
+												className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1"
+											>
+												E-mail do Usuário
+											</label>
+											<input
+												id="inviteEmail"
+												type="email"
+												value={inviteEmail}
+												onChange={(e) =>
+													setInviteEmail(e.target.value)
+												}
+												placeholder="usuario@email.com"
+												className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+												required
+											/>
+										</div>
+										<button
+											type="submit"
+											disabled={inviting}
+											className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center h-9"
+										>
+											{inviting ? (
+												<span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+											) : (
+												"Enviar Convite"
+											)}
+										</button>
+									</form>
+								</div>
+							)}
+
 							<h3 className="text-xl font-bold text-gray-900 dark:text-white">
 								Membros do Grupo
 							</h3>

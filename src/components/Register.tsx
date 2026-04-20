@@ -31,24 +31,8 @@ export function Register() {
 				throw new Error(userData.message || "Erro ao criar conta.");
 			}
 
-			// 2. Fazer login automaticamente após o cadastro
-			const resLogin = await fetch("http://localhost:3333/login", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ email, password }),
-			});
-
-			const loginData = await resLogin.json();
-
-			if (!resLogin.ok) {
-				throw new Error("Conta criada, mas ocorreu um erro no login automático.");
-			}
-
-			// Salva o token e vai pro dashboard
-			localStorage.setItem("token", loginData.token);
-			navigate("/dashboard");
+			// Vai para o login
+			navigate("/login");
 		} catch (err: unknown) {
 			if (err instanceof Error) {
 				setError(err.message);

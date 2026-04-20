@@ -1,40 +1,31 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { MindShare } from "../assets/mindshare";
-
-// Minimal JWT decode to extract userId safely
-function decodeJwt(token: string) {
-	try {
-		const payload = token.split(".")[1];
-		const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-		const jsonPayload = decodeURIComponent(
-			window
-				.atob(base64)
-				.split("")
-				.map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-				.join("")
-		);
-		return JSON.parse(jsonPayload);
-	} catch (e) {
-		return null;
-	}
-}
+import type { Group } from "../types/group";
+import type { Invite } from "../types/invite";
+import { decodeJwt } from "../utils/function";
 
 export function Dashboard() {
 	const navigate = useNavigate();
 	const token = localStorage.getItem("token") || "";
-	
-	const [groups, setGroups] = useState<any[]>([]);
-	const [invites, setInvites] = useState<any[]>([]);
+
+	const [groups, setGroups] = useState<Group[]>([]);
+	const [invites, setInvites] = useState<Invite[]>([]);
+	const [inviteGroupNames, setInviteGroupNames] = useState<
+		Record<string, string>
+	>({});
 	const [loading, setLoading] = useState(true);
+	const [processingInviteId, setProcessingInviteId] = useState<string | null>(null);
 	const [error, setError] = useState("");
 
-	const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+	const authHeader = token.startsWith("Bearer ")
+		? token
+		: `Bearer ${token}`;
 
-	const handleLogout = () => {
+	const handleLogout = useCallback(() => {
 		localStorage.removeItem("token");
 		navigate("/login");
-	};
+	}, [navigate]);
 
 	useEffect(() => {
 		async function fetchData() {
@@ -49,12 +40,16 @@ export function Dashboard() {
 
 				// Decode token to find user ID
 				const decoded = decodeJwt(token);
-				const userId = decoded?.sub || decoded?.id || decoded?.userId;
+				const userId =
+					decoded?.sub || decoded?.id || decoded?.userId;
 
 				// Fetch Groups
-				const groupsRes = await fetch("http://localhost:3333/groups", {
-					headers: { Authorization: authHeader },
-				});
+				const groupsRes = await fetch(
+					`http://localhost:3333/groups?userId=${userId}`,
+					{
+						headers: { Authorization: authHeader },
+					},
+				);
 
 				if (!groupsRes.ok) {
 					throw new Error("Erro ao carregar os grupos");
@@ -63,13 +58,29 @@ export function Dashboard() {
 				const groupsData = await groupsRes.json();
 				setGroups(groupsData);
 
+				// Fetch All Groups para podermos pegar o nome do grupo do convite
+				const allGroupsRes = await fetch(
+					"http://localhost:3333/groups",
+					{
+						headers: { Authorization: authHeader },
+					},
+				);
+				if (allGroupsRes.ok) {
+					const allGroupsData = await allGroupsRes.json();
+					const namesMap: Record<string, string> = {};
+					allGroupsData.forEach((g: Group) => {
+						namesMap[g.id] = g.name;
+					});
+					setInviteGroupNames(namesMap);
+				}
+
 				// Fetch Invites if userId is known
 				if (userId) {
 					const invitesRes = await fetch(
 						`http://localhost:3333/invites/user/${userId}`,
 						{
 							headers: { Authorization: authHeader },
-						}
+						},
 					);
 
 					if (invitesRes.ok) {
@@ -77,10 +88,17 @@ export function Dashboard() {
 						setInvites(invitesData);
 					}
 				}
-			} catch (err: any) {
-				setError(err.message);
-				if (err.message.includes("401") || err.message.toLowerCase().includes("token")) {
-					handleLogout();
+			} catch (err: unknown) {
+				if (err instanceof Error) {
+					setError(err.message);
+					if (
+						err.message.includes("401") ||
+						err.message.toLowerCase().includes("token")
+					) {
+						handleLogout();
+					}
+				} else {
+					setError("An unknown error occurred");
 				}
 			} finally {
 				setLoading(false);
@@ -88,31 +106,49 @@ export function Dashboard() {
 		}
 
 		fetchData();
-	}, [token, authHeader, navigate]);
+	}, [token, authHeader, navigate, handleLogout]);
 
-	const handleInviteReply = async (inviteId: string, status: "ACCEPTED" | "DECLINED") => {
+	const handleInviteReply = async (
+		inviteId: string,
+		status: "ACCEPTED" | "DECLINED",
+	) => {
+		setProcessingInviteId(inviteId);
 		try {
-			const res = await fetch(`http://localhost:3333/invites/${inviteId}`, {
-				method: "PUT",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: authHeader,
+			const res = await fetch(
+				`http://localhost:3333/invites/${inviteId}`,
+				{
+					method: "PUT",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: authHeader,
+					},
+					body: JSON.stringify({ status }),
 				},
-				body: JSON.stringify({ status }),
-			});
+			);
 
 			if (res.ok) {
-				// Remove invite from list and refresh groups if accepted
-				setInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
+				setInvites((prev) =>
+					prev.filter((inv) => inv.id !== inviteId),
+				);
 				if (status === "ACCEPTED") {
-					const groupsRes = await fetch("http://localhost:3333/groups", {
-						headers: { Authorization: authHeader },
-					});
-					if (groupsRes.ok) setGroups(await groupsRes.json());
+					const decoded = decodeJwt(token);
+					const currentUserId =
+						decoded?.sub || decoded?.id || decoded?.userId;
+
+					const groupsRes = await fetch(
+						`http://localhost:3333/groups?userId=${currentUserId}`,
+						{
+							headers: { Authorization: authHeader },
+						},
+					);
+					if (groupsRes.ok)
+						setGroups(await groupsRes.json());
 				}
 			}
 		} catch (error) {
-			console.error("Erro ao responder convite", error);
+			console.error("Erro ao processar convite", error);
+		} finally {
+			setProcessingInviteId(null);
 		}
 	};
 
@@ -128,6 +164,7 @@ export function Dashboard() {
 						</h1>
 					</div>
 					<button
+						type="button"
 						onClick={handleLogout}
 						className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
 					>
@@ -156,7 +193,10 @@ export function Dashboard() {
 								<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
 									Meus Grupos
 								</h2>
-								<button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer shadow-sm hover:shadow-md">
+								<button
+									type="button"
+									className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer shadow-sm hover:shadow-md"
+								>
 									+ Novo Grupo
 								</button>
 							</div>
@@ -164,7 +204,8 @@ export function Dashboard() {
 							{groups.length === 0 ? (
 								<div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center border border-gray-100 dark:border-gray-700 shadow-sm">
 									<p className="text-gray-500 dark:text-gray-400">
-										Você ainda não faz parte de nenhum grupo.
+										Você ainda não faz parte de nenhum
+										grupo.
 									</p>
 								</div>
 							) : (
@@ -184,7 +225,10 @@ export function Dashboard() {
 												</p>
 											)}
 											<div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-												<span>{group.members?.length || 0} membro(s)</span>
+												<span>
+													{group.members?.length || 0}{" "}
+													membro(s)
+												</span>
 												<span className="text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-700 dark:hover:text-indigo-300">
 													Ver Ideias &rarr;
 												</span>
@@ -211,8 +255,9 @@ export function Dashboard() {
 								<div className="space-y-3">
 									{invites.map((invite) => {
 										// Apenas exibe se for pendente
-										if (invite.status !== "PENDING") return null;
-										
+										if (invite.status !== "PENDING")
+											return null;
+
 										return (
 											<div
 												key={invite.id}
@@ -221,19 +266,41 @@ export function Dashboard() {
 												<p className="text-sm text-gray-800 dark:text-gray-200">
 													Você foi convidado para o grupo{" "}
 													<span className="font-semibold text-indigo-600 dark:text-indigo-400">
-														{invite.groupId.substring(0, 8)}...
+														{
+															inviteGroupNames[
+																invite.groupId
+															]
+														}
 													</span>
 												</p>
 												<div className="flex gap-2 mt-1">
 													<button
-														onClick={() => handleInviteReply(invite.id, "ACCEPTED")}
-														className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+														type="button"
+														disabled={processingInviteId === invite.id}
+														onClick={() =>
+															handleInviteReply(
+																invite.id,
+																"ACCEPTED",
+															)
+														}
+														className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center h-8"
 													>
-														Aceitar
+														{processingInviteId === invite.id ? (
+															<span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+														) : (
+															"Aceitar"
+														)}
 													</button>
 													<button
-														onClick={() => handleInviteReply(invite.id, "DECLINED")}
-														className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer border border-gray-200 dark:border-gray-600"
+														type="button"
+														disabled={processingInviteId === invite.id}
+														onClick={() =>
+															handleInviteReply(
+																invite.id,
+																"DECLINED",
+															)
+														}
+														className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer border border-gray-200 dark:border-gray-600 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center h-8"
 													>
 														Recusar
 													</button>
