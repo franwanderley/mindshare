@@ -1,0 +1,339 @@
+import { useEffect, useMemo, useState } from "react";
+import {
+	Link,
+	useNavigate,
+	useParams,
+} from "react-router-dom";
+import { MindShare } from "../assets/mindshare";
+import type { Group } from "../types/group";
+import type { Idea } from "../types/ideas";
+import type { User } from "../types/user";
+import { decodeJwt } from "../utils/function";
+
+export function GroupDetails() {
+	const { groupId } = useParams<{ groupId: string }>();
+	const navigate = useNavigate();
+	const token = localStorage.getItem("token") || "";
+
+	const [groupName, setGroupName] = useState(
+		"Carregando grupo...",
+	);
+	const [ideas, setIdeas] = useState<Idea[]>([]);
+	const [users, setUsers] = useState<User[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState("");
+
+	const userId = useMemo(() => {
+		if (!token) return null;
+		const decoded = decodeJwt(token);
+		return decoded?.sub || decoded?.id || decoded?.userId;
+	}, [token]);
+
+	const authHeader = token.startsWith("Bearer ")
+		? token
+		: `Bearer ${token}`;
+
+	useEffect(() => {
+		async function fetchGroupData() {
+			try {
+				if (!token) {
+					navigate("/login");
+					return;
+				}
+
+				setLoading(true);
+
+				const ideasRes = await fetch(
+					`http://localhost:3333/ideas/${groupId}`,
+					{
+						headers: { Authorization: authHeader },
+					},
+				);
+
+				const usersRes = await fetch(
+					`http://localhost:3333/groups/${groupId}/users`,
+					{
+						headers: { Authorization: authHeader },
+					},
+				);
+
+				const groupsRes = await fetch(
+					"http://localhost:3333/groups",
+					{
+						headers: { Authorization: authHeader },
+					},
+				);
+
+				if (groupsRes.ok) {
+					const allGroups = await groupsRes.json();
+					const currentGroup = allGroups.find(
+						(g: Group) => g.id === groupId,
+					);
+					if (currentGroup) {
+						setGroupName(currentGroup.name);
+					} else {
+						setGroupName("Detalhes do Grupo");
+					}
+				}
+
+				if (ideasRes.ok) {
+					const ideasData = await ideasRes.json();
+					setIdeas(ideasData);
+				}
+
+				if (usersRes.ok) {
+					const usersData = await usersRes.json();
+					setUsers(usersData);
+				}
+			} catch (err: unknown) {
+				if (err instanceof Error) {
+					setError(err.message);
+				} else {
+					setError(String(err));
+				}
+			} finally {
+				setLoading(false);
+			}
+		}
+
+		if (groupId) {
+			fetchGroupData();
+		}
+	}, [groupId, token, authHeader, navigate]);
+
+	const handleLike = async (ideaId: string) => {
+		try {
+			const res = await fetch(
+				`http://localhost:3333/ideas/${ideaId}/like`,
+				{
+					method: "POST",
+					headers: { Authorization: authHeader },
+				},
+			);
+			if (res.ok) {
+				// Atualizar as ideias para mostrar que foi curtido (simulação caso a API não retorne atualizado)
+				// O ideal seria fazer um refetch ou atualizar o contador de likes no estado
+				alert("Ideia curtida!");
+			}
+		} catch (err) {
+			console.error("Erro ao curtir a ideia", err);
+		}
+	};
+
+	const handleLogout = () => {
+		localStorage.removeItem("token");
+		navigate("/login");
+	};
+
+	return (
+		<div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+			{/* Header */}
+			<header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+					<div className="flex items-center gap-4">
+						<MindShare className="h-10 w-10" />
+						<div className="flex items-center gap-2">
+							<Link
+								to="/dashboard"
+								className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium text-sm"
+							>
+								Dashboard
+							</Link>
+							<span className="text-gray-300 dark:text-gray-600">
+								/
+							</span>
+							<h1 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1">
+								{groupName}
+							</h1>
+						</div>
+					</div>
+					<button
+						type="button"
+						onClick={handleLogout}
+						className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+					>
+						Sair
+					</button>
+				</div>
+			</header>
+
+			{/* Main Content */}
+			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+				{error && (
+					<div className="mb-6 p-4 rounded-lg bg-red-100 text-red-700 border border-red-200 text-sm">
+						{error}
+					</div>
+				)}
+
+				{loading ? (
+					<div className="flex justify-center items-center h-64">
+						<div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+					</div>
+				) : (
+					<div className="flex flex-col lg:flex-row gap-8">
+						{/* Lista de Ideias (Área Principal) */}
+						<div className="flex-1 space-y-6">
+							<div className="flex items-center justify-between">
+								<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+									Ideias do Grupo
+								</h2>
+								<button
+									type="button"
+									className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer shadow-sm hover:shadow-md"
+								>
+									+ Nova Ideia
+								</button>
+							</div>
+
+							{ideas.length === 0 ? (
+								<div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center border border-gray-100 dark:border-gray-700 shadow-sm">
+									<p className="text-gray-500 dark:text-gray-400">
+										Nenhuma ideia foi compartilhada neste
+										grupo ainda.
+									</p>
+								</div>
+							) : (
+								<div className="space-y-4">
+									{ideas.map((idea) => {
+										const isLikedByMe = idea.likes?.some(
+											(like) => like.userId === userId,
+										);
+										const author = users.find(
+											(u) => u.id === idea.authorId,
+										);
+										const authorName = author
+											? author.name
+											: "Autor desconhecido";
+
+										return (
+											<div
+												key={idea.id}
+												className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm"
+											>
+												<div className="flex justify-between items-start mb-4">
+													<h3 className="font-semibold text-xl text-gray-900 dark:text-white">
+														{idea.title}
+													</h3>
+													<span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+														Por: {authorName}
+													</span>
+												</div>
+												<p className="text-gray-600 dark:text-gray-300 text-sm mb-6 whitespace-pre-wrap">
+													{idea.description}
+												</p>
+
+												{/* Botões de Ação */}
+												<div className="flex items-center gap-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+													<button
+														type="button"
+														onClick={() =>
+															handleLike(idea.id)
+														}
+														className={`flex items-center gap-1.5 text-sm font-medium transition-colors cursor-pointer ${
+															isLikedByMe
+																? "text-indigo-600 dark:text-indigo-400"
+																: "text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400"
+														}`}
+													>
+														<svg
+															className="w-5 h-5"
+															aria-hidden="true"
+															fill={
+																isLikedByMe
+																	? "currentColor"
+																	: "none"
+															}
+															stroke="currentColor"
+															viewBox="0 0 24 24"
+															xmlns="http://www.w3.org/2000/svg"
+														>
+															<path
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																strokeWidth="2"
+																d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
+															></path>
+														</svg>
+														Curtir{" "}
+														{idea.likes?.length > 0 &&
+															`(${idea.likes.length})`}
+													</button>
+
+													<button
+														type="button"
+														className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+													>
+														<svg
+															className="w-5 h-5"
+															aria-hidden="true"
+															fill="none"
+															stroke="currentColor"
+															viewBox="0 0 24 24"
+															xmlns="http://www.w3.org/2000/svg"
+														>
+															<path
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																strokeWidth="2"
+																d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+															></path>
+														</svg>
+														Comentários{" "}
+														{idea.comments?.length > 0 &&
+															`(${idea.comments.length})`}
+													</button>
+												</div>
+											</div>
+										);
+									})}
+								</div>
+							)}
+						</div>
+
+						<aside className="lg:w-80 space-y-6 pt-8 mt-8 border-t border-gray-200 dark:border-gray-700 lg:border-t-0 lg:pt-0 lg:mt-0 lg:border-l lg:pl-8 flex-shrink-0">
+							<h3 className="text-xl font-bold text-gray-900 dark:text-white">
+								Membros do Grupo
+							</h3>
+
+							<div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+								{users.length === 0 ? (
+									<div className="p-6 text-center text-gray-500 text-sm">
+										Nenhum usuário encontrado.
+									</div>
+								) : (
+									<ul className="divide-y divide-gray-100 dark:divide-gray-700">
+										{users.map((user) => (
+											<li
+												key={user.id}
+												className="p-4 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+											>
+												<div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold flex-shrink-0">
+													{user.name
+														.charAt(0)
+														.toUpperCase()}
+												</div>
+												<div className="overflow-hidden">
+													<p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+														{user.name}
+													</p>
+													<p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+														{user.email}
+													</p>
+												</div>
+												{user.role === "ADMIN" && (
+													<span className="ml-auto text-[10px] font-bold uppercase bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 px-2 py-0.5 rounded-full">
+														Admin
+													</span>
+												)}
+											</li>
+										))}
+									</ul>
+								)}
+							</div>
+						</aside>
+					</div>
+				)}
+			</main>
+		</div>
+	);
+}
