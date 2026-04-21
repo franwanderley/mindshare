@@ -9,6 +9,8 @@ import type { Group } from "../types/group";
 import type { Idea } from "../types/ideas";
 import type { User } from "../types/user";
 import { decodeJwt } from "../utils/function";
+import { CreateIdeaModal } from "./CreateIdeaModal";
+import { CommentsModal } from "./CommentsModal";
 
 export function GroupDetails() {
 	const { groupId } = useParams<{ groupId: string }>();
@@ -25,6 +27,14 @@ export function GroupDetails() {
 	const [error, setError] = useState("");
 	const [inviteEmail, setInviteEmail] = useState("");
 	const [inviting, setInviting] = useState(false);
+	const [likingIdeaId, setLikingIdeaId] = useState<string | null>(null);
+	const [isCreateIdeaModalOpen, setIsCreateIdeaModalOpen] =
+		useState(false);
+	const [activeCommentIdeaId, setActiveCommentIdeaId] = useState<string | null>(null);
+
+	const activeCommentIdea = useMemo(() => {
+		return ideas.find((i) => i.id === activeCommentIdeaId) || null;
+	}, [ideas, activeCommentIdeaId]);
 
 	const userId = useMemo(() => {
 		if (!token) return null;
@@ -106,6 +116,7 @@ export function GroupDetails() {
 	}, [groupId, token, authHeader, navigate]);
 
 	const handleLike = async (ideaId: string) => {
+		setLikingIdeaId(ideaId);
 		try {
 			const res = await fetch(
 				`http://localhost:3333/ideas/${ideaId}/like`,
@@ -115,10 +126,22 @@ export function GroupDetails() {
 				},
 			);
 			if (res.ok) {
-				alert("Ideia curtida!");
+				// Atualiza a lista de ideias para refletir o like
+				const ideasRes = await fetch(
+					`http://localhost:3333/ideas/${groupId}`,
+					{
+						headers: { Authorization: authHeader },
+					},
+				);
+				if (ideasRes.ok) {
+					const ideasData = await ideasRes.json();
+					setIdeas(ideasData);
+				}
 			}
 		} catch (err) {
 			console.error("Erro ao curtir a ideia", err);
+		} finally {
+			setLikingIdeaId(null);
 		}
 	};
 
@@ -129,39 +152,48 @@ export function GroupDetails() {
 		setInviting(true);
 		try {
 			// 1. Busca o usuário pelo e-mail
-			const usersRes = await fetch(`http://localhost:3333/users?email=${encodeURIComponent(inviteEmail.trim())}`);
+			const usersRes = await fetch(
+				`http://localhost:3333/users?email=${encodeURIComponent(inviteEmail.trim())}`,
+			);
 			if (!usersRes.ok) {
-				throw new Error("Erro ao buscar usuário pelo e-mail");
+				throw new Error(
+					"Erro ao buscar usuário pelo e-mail",
+				);
 			}
-			
+
 			const usersData = await usersRes.json();
 			if (!usersData || usersData.length === 0) {
 				alert("Nenhum usuário encontrado com este e-mail.");
 				return;
 			}
-			
+
 			const receiverId = usersData[0].id;
 
 			// 2. Envia o convite
-			const res = await fetch("http://localhost:3333/invites", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: authHeader,
+			const res = await fetch(
+				"http://localhost:3333/invites",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: authHeader,
+					},
+					body: JSON.stringify({
+						groupId,
+						senderId: userId,
+						receiverId,
+					}),
 				},
-				body: JSON.stringify({
-					groupId,
-					senderId: userId,
-					receiverId,
-				}),
-			});
+			);
 
 			if (res.ok) {
 				alert("Convite enviado com sucesso!");
 				setInviteEmail("");
 			} else {
 				const data = await res.json();
-				alert(`Erro ao enviar convite: ${data.message || "Erro desconhecido"}`);
+				alert(
+					`Erro ao enviar convite: ${data.message || "Erro desconhecido"}`,
+				);
 			}
 		} catch (err) {
 			console.error(err);
@@ -230,6 +262,9 @@ export function GroupDetails() {
 								</h2>
 								<button
 									type="button"
+									onClick={() =>
+										setIsCreateIdeaModalOpen(true)
+									}
 									className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer shadow-sm hover:shadow-md"
 								>
 									+ Nova Ideia
@@ -280,31 +315,36 @@ export function GroupDetails() {
 														onClick={() =>
 															handleLike(idea.id)
 														}
-														className={`flex items-center gap-1.5 text-sm font-medium transition-colors cursor-pointer ${
+														disabled={likingIdeaId === idea.id}
+														className={`flex items-center gap-1.5 text-sm font-medium transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed ${
 															isLikedByMe
 																? "text-indigo-600 dark:text-indigo-400"
 																: "text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400"
 														}`}
 													>
-														<svg
-															className="w-5 h-5"
-															aria-hidden="true"
-															fill={
-																isLikedByMe
-																	? "currentColor"
-																	: "none"
-															}
-															stroke="currentColor"
-															viewBox="0 0 24 24"
-															xmlns="http://www.w3.org/2000/svg"
-														>
-															<path
-																strokeLinecap="round"
-																strokeLinejoin="round"
-																strokeWidth="2"
-																d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
-															></path>
-														</svg>
+														{likingIdeaId === idea.id ? (
+															<span className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 dark:border-indigo-900 dark:border-t-indigo-400 rounded-full animate-spin"></span>
+														) : (
+															<svg
+																className="w-5 h-5"
+																aria-hidden="true"
+																fill={
+																	isLikedByMe
+																		? "currentColor"
+																		: "none"
+																}
+																stroke="currentColor"
+																viewBox="0 0 24 24"
+																xmlns="http://www.w3.org/2000/svg"
+															>
+																<path
+																	strokeLinecap="round"
+																	strokeLinejoin="round"
+																	strokeWidth="2"
+																	d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
+																></path>
+															</svg>
+														)}
 														Curtir{" "}
 														{idea.likes?.length > 0 &&
 															`(${idea.likes.length})`}
@@ -312,6 +352,7 @@ export function GroupDetails() {
 
 													<button
 														type="button"
+														onClick={() => setActiveCommentIdeaId(idea.id)}
 														className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
 													>
 														<svg
@@ -427,6 +468,41 @@ export function GroupDetails() {
 						</aside>
 					</div>
 				)}
+
+				{/* Modal de Criar Ideia */}
+				<CreateIdeaModal
+					isOpen={isCreateIdeaModalOpen}
+					onClose={() => setIsCreateIdeaModalOpen(false)}
+					groupId={groupId || ""}
+					userId={userId || ""}
+					authHeader={authHeader}
+					onSuccess={() => {
+						setIsCreateIdeaModalOpen(false);
+						fetch(`http://localhost:3333/ideas/${groupId}`, {
+							headers: { Authorization: authHeader },
+						})
+							.then((res) => res.json())
+							.then((data) => setIdeas(data))
+							.catch((err) => console.error("Erro ao recarregar ideias", err));
+					}}
+				/>
+
+				{/* Modal de Comentários */}
+				<CommentsModal
+					isOpen={!!activeCommentIdeaId}
+					onClose={() => setActiveCommentIdeaId(null)}
+					idea={activeCommentIdea}
+					authHeader={authHeader}
+					users={users}
+					onSuccess={() => {
+						fetch(`http://localhost:3333/ideas/${groupId}`, {
+							headers: { Authorization: authHeader },
+						})
+							.then((res) => res.json())
+							.then((data) => setIdeas(data))
+							.catch((err) => console.error("Erro ao recarregar ideias", err));
+					}}
+				/>
 			</main>
 		</div>
 	);

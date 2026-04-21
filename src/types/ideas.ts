@@ -1,3 +1,5 @@
+import type { Comment } from "./comment";
+
 export interface Idea {
 	id: string;
 	title: string;
