@@ -1,60 +1,55 @@
 import { useState } from "react";
-import { IdeaService } from "../utils/service";
+import { GroupService } from "../utils/service";
 
-interface CreateIdeaModalProps {
+interface CreateGroupModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	groupId: string;
 	userId: string;
 	authHeader: string;
 	onSuccess: () => void;
 }
 
-export function CreateIdeaModal({
+export function CreateGroupModal({
 	isOpen,
 	onClose,
-	groupId,
 	userId,
 	authHeader,
 	onSuccess,
-}: CreateIdeaModalProps) {
-	const [newIdeaTitle, setNewIdeaTitle] = useState("");
-	const [newIdeaDescription, setNewIdeaDescription] = useState("");
-	const [creatingIdea, setCreatingIdea] = useState(false);
+}: CreateGroupModalProps) {
+	const [newGroupName, setNewGroupName] = useState("");
+	const [newGroupDescription, setNewGroupDescription] = useState("");
+	const [creatingGroup, setCreatingGroup] = useState(false);
 
 	if (!isOpen) return null;
 
-	const handleCreateIdea = async (e: React.FormEvent) => {
+	const handleCreateGroup = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!newIdeaTitle.trim() || !newIdeaDescription.trim() || !userId) return;
+		if (!newGroupName.trim() || !userId) return;
 
-		setCreatingIdea(true);
+		setCreatingGroup(true);
 		try {
-			const res = await IdeaService.createIdea(
+			const res = await GroupService.createGroup(
 				{
-					title: newIdeaTitle,
-					description: newIdeaDescription,
-					authorId: userId,
-					groupId,
+					name: newGroupName,
+					description: newGroupDescription,
+					adminId: userId,
 				},
 				authHeader
 			);
 
 			if (res.ok) {
-				setNewIdeaTitle("");
-				setNewIdeaDescription("");
+				setNewGroupName("");
+				setNewGroupDescription("");
 				onSuccess();
 			} else {
 				const data = await res.json();
-				alert(
-					`Erro ao criar ideia: ${data.error || data.message || "Erro desconhecido"}`
-				);
+				alert(`Erro ao criar grupo: ${data.error || data.message || "Erro desconhecido"}`);
 			}
 		} catch (err) {
 			console.error(err);
-			alert("Erro ao criar ideia.");
+			alert("Erro ao criar grupo.");
 		} finally {
-			setCreatingIdea(false);
+			setCreatingGroup(false);
 		}
 	};
 
@@ -63,7 +58,7 @@ export function CreateIdeaModal({
 			<div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
 				<div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
 					<h3 className="text-xl font-bold text-gray-900 dark:text-white">
-						Nova Ideia
+						Novo Grupo
 					</h3>
 					<button
 						type="button"
@@ -88,20 +83,20 @@ export function CreateIdeaModal({
 					</button>
 				</div>
 
-				<form onSubmit={handleCreateIdea} className="p-6 space-y-4">
+				<form onSubmit={handleCreateGroup} className="p-6 space-y-4">
 					<div>
 						<label
-							htmlFor="ideaTitle"
+							htmlFor="groupName"
 							className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 						>
-							Título da Ideia
+							Nome do Grupo
 						</label>
 						<input
-							id="ideaTitle"
+							id="groupName"
 							type="text"
-							value={newIdeaTitle}
-							onChange={(e) => setNewIdeaTitle(e.target.value)}
-							placeholder="Dê um título curto e claro"
+							value={newGroupName}
+							onChange={(e) => setNewGroupName(e.target.value)}
+							placeholder="Ex: Projeto Integrador"
 							className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 							required
 						/>
@@ -109,19 +104,18 @@ export function CreateIdeaModal({
 
 					<div>
 						<label
-							htmlFor="ideaDescription"
+							htmlFor="groupDescription"
 							className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 						>
-							Descrição Detalhada
+							Descrição (Opcional)
 						</label>
 						<textarea
-							id="ideaDescription"
-							rows={4}
-							value={newIdeaDescription}
-							onChange={(e) => setNewIdeaDescription(e.target.value)}
-							placeholder="Descreva sua ideia, como ela funciona, por que ela é importante..."
+							id="groupDescription"
+							rows={3}
+							value={newGroupDescription}
+							onChange={(e) => setNewGroupDescription(e.target.value)}
+							placeholder="Sobre o que é este grupo?"
 							className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
-							required
 						></textarea>
 					</div>
 
@@ -135,13 +129,13 @@ export function CreateIdeaModal({
 						</button>
 						<button
 							type="submit"
-							disabled={creatingIdea}
+							disabled={creatingGroup}
 							className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer min-w-[100px]"
 						>
-							{creatingIdea ? (
+							{creatingGroup ? (
 								<span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
 							) : (
-								"Compartilhar"
+								"Criar Grupo"
 							)}
 						</button>
 					</div>

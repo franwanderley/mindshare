@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { MindShare } from "../assets/mindshare";
+import { AuthService } from "../utils/service";
 
 export function Register() {
 	const navigate = useNavigate();
@@ -16,22 +17,20 @@ export function Register() {
 		setError("");
 
 		try {
-			// 1. Cadastrar o usuário
-			const resUser = await fetch("http://localhost:3333/users", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ name, email, password }),
+			const resUser = await AuthService.register({
+				name,
+				email,
+				password,
 			});
 
 			const userData = await resUser.json();
 
 			if (!resUser.ok) {
-				throw new Error(userData.message || "Erro ao criar conta.");
+				throw new Error(
+					userData.message || "Erro ao criar conta.",
+				);
 			}
 
-			// Vai para o login
 			navigate("/login");
 		} catch (err: unknown) {
 			if (err instanceof Error) {
@@ -58,7 +57,10 @@ export function Register() {
 						</p>
 					</div>
 
-					<form onSubmit={handleSubmit} className="space-y-6">
+					<form
+						onSubmit={handleSubmit}
+						className="space-y-6"
+					>
 						<div>
 							{error && (
 								<div className="mb-4 p-3 rounded-lg bg-red-100 text-red-700 text-sm border border-red-200 text-center">
@@ -78,7 +80,9 @@ export function Register() {
 										id="name"
 										type="text"
 										value={name}
-										onChange={(e) => setName(e.target.value)}
+										onChange={(e) =>
+											setName(e.target.value)
+										}
 										required
 										className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
 										placeholder="João da Silva"
@@ -96,7 +100,9 @@ export function Register() {
 										id="email"
 										type="email"
 										value={email}
-										onChange={(e) => setEmail(e.target.value)}
+										onChange={(e) =>
+											setEmail(e.target.value)
+										}
 										required
 										className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
 										placeholder="seu@email.com"
@@ -114,7 +120,9 @@ export function Register() {
 										id="password"
 										type="password"
 										value={password}
-										onChange={(e) => setPassword(e.target.value)}
+										onChange={(e) =>
+											setPassword(e.target.value)
+										}
 										required
 										className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
 										placeholder="••••••••"
@@ -135,7 +143,7 @@ export function Register() {
 							)}
 						</button>
 					</form>
-					
+
 					<div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
 						Já tem uma conta?{" "}
 						<Link

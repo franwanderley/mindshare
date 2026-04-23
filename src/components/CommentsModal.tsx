@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Idea } from "../types/ideas";
 import type { User } from "../types/user";
+import { IdeaService } from "../utils/service";
 
 interface CommentsModalProps {
 	isOpen: boolean;
@@ -30,16 +31,10 @@ export function CommentsModal({
 
 		setIsSubmitting(true);
 		try {
-			const res = await fetch(
-				`http://localhost:3333/ideas/${idea.id}/comment`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: authHeader,
-					},
-					body: JSON.stringify({ content: newComment }),
-				},
+			const res = await IdeaService.commentIdea(
+				idea.id,
+				{ content: newComment },
+				authHeader
 			);
 
 			if (res.ok) {

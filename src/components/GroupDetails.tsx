@@ -9,8 +9,14 @@ import type { Group } from "../types/group";
 import type { Idea } from "../types/ideas";
 import type { User } from "../types/user";
 import { decodeJwt } from "../utils/function";
-import { CreateIdeaModal } from "./CreateIdeaModal";
+import {
+	GroupService,
+	IdeaService,
+	InviteService,
+	UserService,
+} from "../utils/service";
 import { CommentsModal } from "./CommentsModal";
+import { CreateIdeaModal } from "./CreateIdeaModal";
 
 export function GroupDetails() {
 	const { groupId } = useParams<{ groupId: string }>();
@@ -27,13 +33,19 @@ export function GroupDetails() {
 	const [error, setError] = useState("");
 	const [inviteEmail, setInviteEmail] = useState("");
 	const [inviting, setInviting] = useState(false);
-	const [likingIdeaId, setLikingIdeaId] = useState<string | null>(null);
+	const [likingIdeaId, setLikingIdeaId] = useState<
+		string | null
+	>(null);
 	const [isCreateIdeaModalOpen, setIsCreateIdeaModalOpen] =
 		useState(false);
-	const [activeCommentIdeaId, setActiveCommentIdeaId] = useState<string | null>(null);
+	const [activeCommentIdeaId, setActiveCommentIdeaId] =
+		useState<string | null>(null);
 
 	const activeCommentIdea = useMemo(() => {
-		return ideas.find((i) => i.id === activeCommentIdeaId) || null;
+		return (
+			ideas.find((i) => i.id === activeCommentIdeaId) ||
+			null
+		);
 	}, [ideas, activeCommentIdeaId]);
 
 	const userId = useMemo(() => {
@@ -53,29 +65,24 @@ export function GroupDetails() {
 					navigate("/login");
 					return;
 				}
+				if (!groupId) {
+					return;
+				}
 
 				setLoading(true);
 
-				const ideasRes = await fetch(
-					`http://localhost:3333/ideas/${groupId}`,
-					{
-						headers: { Authorization: authHeader },
-					},
+				const ideasRes = await IdeaService.getIdeasByGroup(
+					groupId,
+					authHeader,
 				);
 
-				const usersRes = await fetch(
-					`http://localhost:3333/groups/${groupId}/users`,
-					{
-						headers: { Authorization: authHeader },
-					},
+				const usersRes = await GroupService.getGroupUsers(
+					groupId,
+					authHeader,
 				);
 
-				const groupsRes = await fetch(
-					"http://localhost:3333/groups",
-					{
-						headers: { Authorization: authHeader },
-					},
-				);
+				const groupsRes =
+					await GroupService.getAllGroups(authHeader);
 
 				if (groupsRes.ok) {
 					const allGroups = await groupsRes.json();
@@ -97,7 +104,19 @@ export function GroupDetails() {
 
 				if (usersRes.ok) {
 					const usersData = await usersRes.json();
+
+					const isMember = usersData.some(
+						(u: User) => u.id === userId,
+					);
+					if (!isMember) {
+						navigate("/dashboard");
+						return;
+					}
+
 					setUsers(usersData);
+				} else {
+					navigate("/dashboard");
+					return;
 				}
 			} catch (err: unknown) {
 				if (err instanceof Error) {
@@ -113,25 +132,19 @@ export function GroupDetails() {
 		if (groupId) {
 			fetchGroupData();
 		}
-	}, [groupId, token, authHeader, navigate]);
+	}, [groupId, token, authHeader, navigate, userId]);
 
 	const handleLike = async (ideaId: string) => {
 		setLikingIdeaId(ideaId);
 		try {
-			const res = await fetch(
-				`http://localhost:3333/ideas/${ideaId}/like`,
-				{
-					method: "POST",
-					headers: { Authorization: authHeader },
-				},
+			const res = await IdeaService.likeIdea(
+				ideaId,
+				authHeader,
 			);
-			if (res.ok) {
-				// Atualiza a lista de ideias para refletir o like
-				const ideasRes = await fetch(
-					`http://localhost:3333/ideas/${groupId}`,
-					{
-						headers: { Authorization: authHeader },
-					},
+			if (res.ok && groupId) {
+				const ideasRes = await IdeaService.getIdeasByGroup(
+					groupId,
+					authHeader,
 				);
 				if (ideasRes.ok) {
 					const ideasData = await ideasRes.json();
@@ -151,9 +164,9 @@ export function GroupDetails() {
 
 		setInviting(true);
 		try {
-			// 1. Busca o usuário pelo e-mail
-			const usersRes = await fetch(
-				`http://localhost:3333/users?email=${encodeURIComponent(inviteEmail.trim())}`,
+			const usersRes = await UserService.getUserByEmail(
+				inviteEmail.trim(),
+				authHeader,
 			);
 			if (!usersRes.ok) {
 				throw new Error(
@@ -169,21 +182,13 @@ export function GroupDetails() {
 
 			const receiverId = usersData[0].id;
 
-			// 2. Envia o convite
-			const res = await fetch(
-				"http://localhost:3333/invites",
+			const res = await InviteService.sendInvite(
 				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: authHeader,
-					},
-					body: JSON.stringify({
-						groupId,
-						senderId: userId,
-						receiverId,
-					}),
+					receiverId,
+					groupId,
+					senderId: userId,
 				},
+				token,
 			);
 
 			if (res.ok) {
@@ -230,13 +235,19 @@ export function GroupDetails() {
 							</h1>
 						</div>
 					</div>
-					<button
-						type="button"
-						onClick={handleLogout}
-						className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-					>
-						Sair
-					</button>
+					<div className="flex items-center gap-4">
+						<span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+							{users.find((u) => u.id === userId)?.name ||
+								"Usuário"}
+						</span>
+						<button
+							type="button"
+							onClick={handleLogout}
+							className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+						>
+							Sair
+						</button>
+					</div>
 				</div>
 			</header>
 
@@ -315,7 +326,9 @@ export function GroupDetails() {
 														onClick={() =>
 															handleLike(idea.id)
 														}
-														disabled={likingIdeaId === idea.id}
+														disabled={
+															likingIdeaId === idea.id
+														}
 														className={`flex items-center gap-1.5 text-sm font-medium transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed ${
 															isLikedByMe
 																? "text-indigo-600 dark:text-indigo-400"
@@ -352,7 +365,11 @@ export function GroupDetails() {
 
 													<button
 														type="button"
-														onClick={() => setActiveCommentIdeaId(idea.id)}
+														onClick={() =>
+															setActiveCommentIdeaId(
+																idea.id,
+															)
+														}
 														className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
 													>
 														<svg
@@ -478,12 +495,18 @@ export function GroupDetails() {
 					authHeader={authHeader}
 					onSuccess={() => {
 						setIsCreateIdeaModalOpen(false);
-						fetch(`http://localhost:3333/ideas/${groupId}`, {
-							headers: { Authorization: authHeader },
-						})
+						if (!groupId) {
+							return;
+						}
+						IdeaService.getIdeasByGroup(groupId, authHeader)
 							.then((res) => res.json())
 							.then((data) => setIdeas(data))
-							.catch((err) => console.error("Erro ao recarregar ideias", err));
+							.catch((err) =>
+								console.error(
+									"Erro ao recarregar ideias",
+									err,
+								),
+							);
 					}}
 				/>
 
@@ -495,12 +518,19 @@ export function GroupDetails() {
 					authHeader={authHeader}
 					users={users}
 					onSuccess={() => {
-						fetch(`http://localhost:3333/ideas/${groupId}`, {
-							headers: { Authorization: authHeader },
-						})
-							.then((res) => res.json())
-							.then((data) => setIdeas(data))
-							.catch((err) => console.error("Erro ao recarregar ideias", err));
+						groupId &&
+							IdeaService.getIdeasByGroup(
+								groupId,
+								authHeader,
+							)
+								.then((res) => res.json())
+								.then((data) => setIdeas(data))
+								.catch((err) =>
+									console.error(
+										"Erro ao recarregar ideias",
+										err,
+									),
+								);
 					}}
 				/>
 			</main>

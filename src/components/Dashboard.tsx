@@ -1,9 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MindShare } from "../assets/mindshare";
 import type { Group } from "../types/group";
 import type { Invite } from "../types/invite";
 import { decodeJwt } from "../utils/function";
+import {
+	GroupService,
+	InviteService,
+	UserService,
+} from "../utils/service";
+import { CreateGroupModal } from "./CreateGroupModal";
 
 export function Dashboard() {
 	const navigate = useNavigate();
@@ -15,8 +26,20 @@ export function Dashboard() {
 		Record<string, string>
 	>({});
 	const [loading, setLoading] = useState(true);
-	const [processingInviteId, setProcessingInviteId] = useState<string | null>(null);
+	const [processingInviteId, setProcessingInviteId] =
+		useState<string | null>(null);
 	const [error, setError] = useState("");
+	const [userName, setUserName] = useState("Usuário");
+	const [
+		isCreateGroupModalOpen,
+		setIsCreateGroupModalOpen,
+	] = useState(false);
+
+	const userId = useMemo(() => {
+		if (!token) return null;
+		const decoded = decodeJwt(token);
+		return decoded?.sub || decoded?.id || decoded?.userId;
+	}, [token]);
 
 	const authHeader = token.startsWith("Bearer ")
 		? token
@@ -38,18 +61,12 @@ export function Dashboard() {
 				setLoading(true);
 				setError("");
 
-				// Decode token to find user ID
-				const decoded = decodeJwt(token);
-				const userId =
-					decoded?.sub || decoded?.id || decoded?.userId;
-
 				// Fetch Groups
-				const groupsRes = await fetch(
-					`http://localhost:3333/groups?userId=${userId}`,
-					{
-						headers: { Authorization: authHeader },
-					},
-				);
+				const groupsRes =
+					await GroupService.getGroupsByUser(
+						userId,
+						authHeader,
+					);
 
 				if (!groupsRes.ok) {
 					throw new Error("Erro ao carregar os grupos");
@@ -59,12 +76,8 @@ export function Dashboard() {
 				setGroups(groupsData);
 
 				// Fetch All Groups para podermos pegar o nome do grupo do convite
-				const allGroupsRes = await fetch(
-					"http://localhost:3333/groups",
-					{
-						headers: { Authorization: authHeader },
-					},
-				);
+				const allGroupsRes =
+					await GroupService.getAllGroups(authHeader);
 				if (allGroupsRes.ok) {
 					const allGroupsData = await allGroupsRes.json();
 					const namesMap: Record<string, string> = {};
@@ -76,12 +89,48 @@ export function Dashboard() {
 
 				// Fetch Invites if userId is known
 				if (userId) {
-					const invitesRes = await fetch(
-						`http://localhost:3333/invites/user/${userId}`,
-						{
-							headers: { Authorization: authHeader },
-						},
-					);
+					try {
+						const userRes = await UserService.getUserById(
+							userId,
+							authHeader,
+						);
+						if (userRes.ok) {
+							const userData = await userRes.json();
+							if (userData.name) {
+								setUserName(userData.name);
+							} else if (
+								Array.isArray(userData) &&
+								userData.length > 0
+							) {
+								setUserName(userData[0].name);
+							}
+						} else {
+							// Tentar por query string se a rota REST não estiver disponível no json-server
+							const userResQuery =
+								await UserService.getUserByIdQuery(
+									userId,
+									authHeader,
+								);
+							if (userResQuery.ok) {
+								const userDataQuery =
+									await userResQuery.json();
+								if (
+									Array.isArray(userDataQuery) &&
+									userDataQuery.length > 0
+								) {
+									setUserName(userDataQuery[0].name);
+								}
+							}
+						}
+					} catch (e) {
+						console.error("Erro ao carregar usuário:", e);
+					}
+
+					const invitesRes =
+						await InviteService.getInvitesByUser(
+							userId,
+							authHeader,
+						);
 
 					if (invitesRes.ok) {
 						const invitesData = await invitesRes.json();
@@ -106,7 +155,7 @@ export function Dashboard() {
 		}
 
 		fetchData();
-	}, [token, authHeader, navigate, handleLogout]);
+	}, [token, authHeader, navigate, handleLogout, userId]);
 
 	const handleInviteReply = async (
 		inviteId: string,
@@ -114,16 +163,10 @@ export function Dashboard() {
 	) => {
 		setProcessingInviteId(inviteId);
 		try {
-			const res = await fetch(
-				`http://localhost:3333/invites/${inviteId}`,
-				{
-					method: "PUT",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: authHeader,
-					},
-					body: JSON.stringify({ status }),
-				},
+			const res = await InviteService.replyInvite(
+				inviteId,
+				status,
+				authHeader,
 			);
 
 			if (res.ok) {
@@ -135,12 +178,11 @@ export function Dashboard() {
 					const currentUserId =
 						decoded?.sub || decoded?.id || decoded?.userId;
 
-					const groupsRes = await fetch(
-						`http://localhost:3333/groups?userId=${currentUserId}`,
-						{
-							headers: { Authorization: authHeader },
-						},
-					);
+					const groupsRes =
+						await GroupService.getGroupsByUser(
+							currentUserId,
+							authHeader,
+						);
 					if (groupsRes.ok)
 						setGroups(await groupsRes.json());
 				}
@@ -163,13 +205,18 @@ export function Dashboard() {
 							MindShare
 						</h1>
 					</div>
-					<button
-						type="button"
-						onClick={handleLogout}
-						className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-					>
-						Sair
-					</button>
+					<div className="flex items-center gap-4">
+						<span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+							{userName}
+						</span>
+						<button
+							type="button"
+							onClick={handleLogout}
+							className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+						>
+							Sair
+						</button>
+					</div>
 				</div>
 			</header>
 
@@ -195,6 +242,9 @@ export function Dashboard() {
 								</h2>
 								<button
 									type="button"
+									onClick={() =>
+										setIsCreateGroupModalOpen(true)
+									}
 									className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer shadow-sm hover:shadow-md"
 								>
 									+ Novo Grupo
@@ -276,7 +326,10 @@ export function Dashboard() {
 												<div className="flex gap-2 mt-1">
 													<button
 														type="button"
-														disabled={processingInviteId === invite.id}
+														disabled={
+															processingInviteId ===
+															invite.id
+														}
 														onClick={() =>
 															handleInviteReply(
 																invite.id,
@@ -285,7 +338,8 @@ export function Dashboard() {
 														}
 														className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center h-8"
 													>
-														{processingInviteId === invite.id ? (
+														{processingInviteId ===
+														invite.id ? (
 															<span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
 														) : (
 															"Aceitar"
@@ -293,7 +347,10 @@ export function Dashboard() {
 													</button>
 													<button
 														type="button"
-														disabled={processingInviteId === invite.id}
+														disabled={
+															processingInviteId ===
+															invite.id
+														}
 														onClick={() =>
 															handleInviteReply(
 																invite.id,
@@ -313,6 +370,30 @@ export function Dashboard() {
 						</div>
 					</div>
 				)}
+
+				<CreateGroupModal
+					isOpen={isCreateGroupModalOpen}
+					onClose={() => setIsCreateGroupModalOpen(false)}
+					userId={userId || ""}
+					authHeader={authHeader}
+					onSuccess={() => {
+						setIsCreateGroupModalOpen(false);
+						if (userId) {
+							GroupService.getGroupsByUser(
+								userId,
+								authHeader,
+							)
+								.then((res) => res.json())
+								.then((data) => setGroups(data))
+								.catch((err) =>
+									console.error(
+										"Erro ao atualizar grupos",
+										err,
+									),
+								);
+						}
+					}}
+				/>
 			</main>
 		</div>
 	);

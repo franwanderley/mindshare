@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { MindShare } from "../assets/mindshare";
+import { AuthService } from "../utils/service";
 
 export function Login() {
 	const navigate = useNavigate();
@@ -21,13 +22,7 @@ export function Login() {
 		setError("");
 
 		try {
-			const response = await fetch("http://localhost:3333/login", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ email, password }),
-			});
+			const response = await AuthService.login({ email, password });
 
 			const data = await response.json();
 
