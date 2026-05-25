@@ -19,14 +19,20 @@ export function CreateIdeaModal({
 	onSuccess,
 }: CreateIdeaModalProps) {
 	const [newIdeaTitle, setNewIdeaTitle] = useState("");
-	const [newIdeaDescription, setNewIdeaDescription] = useState("");
+	const [newIdeaDescription, setNewIdeaDescription] =
+		useState("");
 	const [creatingIdea, setCreatingIdea] = useState(false);
 
 	if (!isOpen) return null;
 
 	const handleCreateIdea = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!newIdeaTitle.trim() || !newIdeaDescription.trim() || !userId) return;
+		if (
+			!newIdeaTitle.trim() ||
+			!newIdeaDescription.trim() ||
+			!userId
+		)
+			return;
 
 		setCreatingIdea(true);
 		try {
@@ -37,7 +43,7 @@ export function CreateIdeaModal({
 					authorId: userId,
 					groupId,
 				},
-				authHeader
+				authHeader,
 			);
 
 			if (res.ok) {
@@ -47,7 +53,7 @@ export function CreateIdeaModal({
 			} else {
 				const data = await res.json();
 				alert(
-					`Erro ao criar ideia: ${data.error || data.message || "Erro desconhecido"}`
+					`Erro ao criar ideia: ${data.error || data.message || "Erro desconhecido"}`,
 				);
 			}
 		} catch (err) {
@@ -88,7 +94,10 @@ export function CreateIdeaModal({
 					</button>
 				</div>
 
-				<form onSubmit={handleCreateIdea} className="p-6 space-y-4">
+				<form
+					onSubmit={handleCreateIdea}
+					className="p-6 space-y-4"
+				>
 					<div>
 						<label
 							htmlFor="ideaTitle"
@@ -100,7 +109,9 @@ export function CreateIdeaModal({
 							id="ideaTitle"
 							type="text"
 							value={newIdeaTitle}
-							onChange={(e) => setNewIdeaTitle(e.target.value)}
+							onChange={(e) =>
+								setNewIdeaTitle(e.target.value)
+							}
 							placeholder="Dê um título curto e claro"
 							className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 							required
@@ -118,7 +129,9 @@ export function CreateIdeaModal({
 							id="ideaDescription"
 							rows={4}
 							value={newIdeaDescription}
-							onChange={(e) => setNewIdeaDescription(e.target.value)}
+							onChange={(e) =>
+								setNewIdeaDescription(e.target.value)
+							}
 							placeholder="Descreva sua ideia, como ela funciona, por que ela é importante..."
 							className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
 							required

@@ -34,7 +34,7 @@ export function CommentsModal({
 			const res = await IdeaService.commentIdea(
 				idea.id,
 				{ content: newComment },
-				authHeader
+				authHeader,
 			);
 
 			if (res.ok) {

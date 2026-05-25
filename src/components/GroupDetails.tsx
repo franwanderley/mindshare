@@ -40,6 +40,11 @@ export function GroupDetails() {
 		useState(false);
 	const [activeCommentIdeaId, setActiveCommentIdeaId] =
 		useState<string | null>(null);
+	const [deletingIdeaId, setDeletingIdeaId] = useState<
+		string | null
+	>(null);
+	const [deletingGroupId, setDeletingGroupId] =
+		useState(false);
 
 	const activeCommentIdea = useMemo(() => {
 		return (
@@ -205,6 +210,73 @@ export function GroupDetails() {
 			alert("Erro ao enviar convite.");
 		} finally {
 			setInviting(false);
+		}
+	};
+
+	const handleDeleteGroup = async () => {
+		if (!groupId) return;
+		const confirmDelete = window.confirm(
+			"Tem certeza que deseja excluir este grupo? Esta ação não pode ser desfeita.",
+		);
+		if (!confirmDelete) return;
+
+		setDeletingGroupId(true);
+		try {
+			const res = await GroupService.deleteGroup(
+				groupId,
+				authHeader,
+			);
+			if (res.ok) {
+				navigate("/dashboard");
+			} else {
+				const data = await res.json();
+				alert(
+					`Erro ao excluir grupo: ${data.message || data.error || "Erro desconhecido"}`,
+				);
+			}
+		} catch (err) {
+			console.error("Erro ao excluir grupo:", err);
+			alert("Erro de conexão ao excluir o grupo.");
+		} finally {
+			setDeletingGroupId(false);
+		}
+	};
+
+	const handleDeleteIdea = async (ideaId: string) => {
+		const confirmDelete = window.confirm(
+			"Tem certeza que deseja excluir esta ideia? Esta ação não pode ser desfeita.",
+		);
+		if (!confirmDelete) return;
+
+		setDeletingIdeaId(ideaId);
+		try {
+			const res = await IdeaService.deleteIdea(
+				ideaId,
+				authHeader,
+			);
+			if (res.ok) {
+				if (groupId) {
+					const ideasRes =
+						await IdeaService.getIdeasByGroup(
+							groupId,
+							authHeader,
+						);
+					if (ideasRes.ok) {
+						const ideasData = await ideasRes.json();
+						setIdeas(ideasData);
+					}
+				}
+			} else {
+				const data = await res.json();
+				alert(
+					`Erro ao excluir ideia: ${data.message || data.error || "Erro desconhecido"}`,
+				);
+			}
+		} catch (err) {
+			console.error("Erro ao excluir ideia:", err);
+			alert("Erro de conexão ao excluir a ideia.");
+		} finally {
+			setDeletingIdeaId(null);
 		}
 	};
 
@@ -391,6 +463,44 @@ export function GroupDetails() {
 														{idea.comments?.length > 0 &&
 															`(${idea.comments.length})`}
 													</button>
+
+													{(idea.authorId === userId ||
+														group?.adminId === userId) && (
+														<button
+															type="button"
+															disabled={
+																deletingIdeaId === idea.id
+															}
+															onClick={() =>
+																handleDeleteIdea(idea.id)
+															}
+															className="flex items-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors cursor-pointer ml-auto disabled:opacity-75 disabled:cursor-not-allowed"
+														>
+															{deletingIdeaId ===
+															idea.id ? (
+																<span className="w-4 h-4 border-2 border-red-200 border-t-red-600 dark:border-red-900 dark:border-t-red-400 rounded-full animate-spin"></span>
+															) : (
+																<svg
+																	className="w-5 h-5"
+																	aria-hidden="true"
+																	fill="none"
+																	stroke="currentColor"
+																	viewBox="0 0 24 24"
+																	xmlns="http://www.w3.org/2000/svg"
+																>
+																	<path
+																		strokeLinecap="round"
+																		strokeLinejoin="round"
+																		strokeWidth="2"
+																		d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+																	></path>
+																</svg>
+															)}
+															{deletingIdeaId === idea.id
+																? "Excluindo..."
+																: "Excluir"}
+														</button>
+													)}
 												</div>
 											</div>
 										);
@@ -440,6 +550,37 @@ export function GroupDetails() {
 											)}
 										</button>
 									</form>
+									<div className="mt-4 pt-4 border-t border-gray-150 dark:border-gray-700">
+										<button
+											type="button"
+											disabled={deletingGroupId}
+											onClick={handleDeleteGroup}
+											className="w-full bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 font-medium py-2 rounded-lg text-sm transition-colors cursor-pointer border border-red-200 dark:border-red-900/50 flex justify-center items-center gap-2 h-9 disabled:opacity-75 disabled:cursor-not-allowed"
+										>
+											{deletingGroupId ? (
+												<span className="w-4 h-4 border-2 border-red-200 border-t-red-600 rounded-full animate-spin"></span>
+											) : (
+												<svg
+													className="w-4 h-4"
+													aria-hidden="true"
+													fill="none"
+													stroke="currentColor"
+													viewBox="0 0 24 24"
+													xmlns="http://www.w3.org/2000/svg"
+												>
+													<path
+														strokeLinecap="round"
+														strokeLinejoin="round"
+														strokeWidth="2"
+														d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+													></path>
+												</svg>
+											)}
+											{deletingGroupId
+												? "Excluindo..."
+												: "Excluir Grupo"}
+										</button>
+									</div>
 								</div>
 							)}
 

@@ -1,6 +1,8 @@
 import type { SVGProps } from "react";
 
-export const MindShare = (props: SVGProps<SVGSVGElement>) => (
+export const MindShare = (
+	props: SVGProps<SVGSVGElement>,
+) => (
 	<svg
 		width="40"
 		height="40"

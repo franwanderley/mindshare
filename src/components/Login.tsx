@@ -22,12 +22,17 @@ export function Login() {
 		setError("");
 
 		try {
-			const response = await AuthService.login({ email, password });
+			const response = await AuthService.login({
+				email,
+				password,
+			});
 
 			const data = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.message || "Erro ao realizar login.");
+				throw new Error(
+					data.message || "Erro ao realizar login.",
+				);
 			}
 
 			localStorage.setItem("token", data.token);
@@ -53,7 +58,10 @@ export function Login() {
 						</p>
 					</div>
 
-					<form onSubmit={handleSubmit} className="space-y-6">
+					<form
+						onSubmit={handleSubmit}
+						className="space-y-6"
+					>
 						<div>
 							<h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6 text-center">
 								Acesse a plataforma
@@ -77,7 +85,9 @@ export function Login() {
 										id="email"
 										type="email"
 										value={email}
-										onChange={(e) => setEmail(e.target.value)}
+										onChange={(e) =>
+											setEmail(e.target.value)
+										}
 										required
 										className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
 										placeholder="seu@email.com"
@@ -95,7 +105,9 @@ export function Login() {
 										id="password"
 										type="password"
 										value={password}
-										onChange={(e) => setPassword(e.target.value)}
+										onChange={(e) =>
+											setPassword(e.target.value)
+										}
 										required
 										className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
 										placeholder="••••••••"
@@ -116,7 +128,7 @@ export function Login() {
 							)}
 						</button>
 					</form>
-					
+
 					<div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
 						Ainda não tem uma conta?{" "}
 						<Link

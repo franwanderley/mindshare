@@ -1,9 +1,7 @@
 const API_URL = "http://localhost:3333";
 
 function getHeaders(token?: string) {
-	const headers: Record<string, string> = {
-		"Content-Type": "application/json",
-	};
+	const headers: Record<string, string> = {};
 	if (token) {
 		headers.Authorization = token;
 	}
@@ -14,7 +12,10 @@ export const AuthService = {
 	login: (data: { email: string; password: string }) =>
 		fetch(`${API_URL}/login`, {
 			method: "POST",
-			headers: getHeaders(),
+			headers: {
+				"Content-Type": "application/json",
+				...getHeaders(),
+			},
 			body: JSON.stringify(data),
 		}),
 	register: (data: {
@@ -24,7 +25,10 @@ export const AuthService = {
 	}) =>
 		fetch(`${API_URL}/users`, {
 			method: "POST",
-			headers: getHeaders(),
+			headers: {
+				"Content-Type": "application/json",
+				...getHeaders(),
+			},
 			body: JSON.stringify(data),
 		}),
 };
@@ -40,7 +44,10 @@ export const GroupService = {
 	) =>
 		fetch(`${API_URL}/groups`, {
 			method: "POST",
-			headers: getHeaders(token),
+			headers: {
+				"Content-Type": "application/json",
+				...getHeaders(token),
+			},
 			body: JSON.stringify(data),
 		}),
 	getGroupsByUser: (userId: string, token: string) =>
@@ -53,6 +60,11 @@ export const GroupService = {
 		}),
 	getGroupUsers: (groupId: string, token: string) =>
 		fetch(`${API_URL}/groups/${groupId}/users`, {
+			headers: getHeaders(token),
+		}),
+	deleteGroup: (groupId: string, token: string) =>
+		fetch(`${API_URL}/groups/${groupId}`, {
+			method: "DELETE",
 			headers: getHeaders(token),
 		}),
 };
@@ -73,13 +85,20 @@ export const IdeaService = {
 	) =>
 		fetch(`${API_URL}/ideas`, {
 			method: "POST",
-			headers: getHeaders(token),
+			headers: {
+				"Content-Type": "application/json",
+				...getHeaders(token),
+			},
 			body: JSON.stringify(data),
 		}),
 	likeIdea: (ideaId: string, token: string) =>
 		fetch(`${API_URL}/ideas/${ideaId}/like`, {
 			method: "POST",
-			headers: getHeaders(token),
+			headers: {
+				"Content-Type": "application/json",
+				...getHeaders(token),
+			},
+			body: JSON.stringify({}),
 		}),
 	commentIdea: (
 		ideaId: string,
@@ -88,8 +107,16 @@ export const IdeaService = {
 	) =>
 		fetch(`${API_URL}/ideas/${ideaId}/comment`, {
 			method: "POST",
-			headers: getHeaders(token),
+			headers: {
+				"Content-Type": "application/json",
+				...getHeaders(token),
+			},
 			body: JSON.stringify(data),
+		}),
+	deleteIdea: (ideaId: string, token: string) =>
+		fetch(`${API_URL}/ideas/${ideaId}`, {
+			method: "DELETE",
+			headers: getHeaders(token),
 		}),
 };
 
@@ -124,7 +151,10 @@ export const InviteService = {
 	) =>
 		fetch(`${API_URL}/invites`, {
 			method: "POST",
-			headers: getHeaders(token),
+			headers: {
+				"Content-Type": "application/json",
+				...getHeaders(token),
+			},
 			body: JSON.stringify(data),
 		}),
 	replyInvite: (
@@ -134,7 +164,10 @@ export const InviteService = {
 	) =>
 		fetch(`${API_URL}/invites/${inviteId}`, {
 			method: "PUT",
-			headers: getHeaders(token),
+			headers: {
+				"Content-Type": "application/json",
+				...getHeaders(token),
+			},
 			body: JSON.stringify({ status }),
 		}),
 };

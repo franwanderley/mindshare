@@ -5,12 +5,17 @@ function Register() {
 		<div className="flex flex-col items-center justify-center h-screen w-screen bg-gray-200 text-gray-700">
 			<HeaderLogin />
 			<div className="bg-white rounded-xl p-6 mb-6 w-full max-w-sm">
-				<h2 className="mb-1 font-bold text-2xl">Crie sua conta</h2>
+				<h2 className="mb-1 font-bold text-2xl">
+					Crie sua conta
+				</h2>
 				<p className="mb-4 text-gray-600">
 					Informe seu nome, e-mail e senha de acesso
 				</p>
 				<form action="">
-					<label className="block mb-1 font-medium" htmlFor="name">
+					<label
+						className="block mb-1 font-medium"
+						htmlFor="name"
+					>
 						Nome
 					</label>
 					<input
@@ -20,7 +25,10 @@ function Register() {
 						className="w-full border rounded-xl p-2 mb-3"
 						placeholder="Digite seu nome"
 					/>
-					<label className="block mb-1 font-medium" htmlFor="email">
+					<label
+						className="block mb-1 font-medium"
+						htmlFor="email"
+					>
 						E-mail
 					</label>
 					<input
@@ -30,7 +38,10 @@ function Register() {
 						className="w-full border rounded-xl p-2 mb-3"
 						placeholder="exemplo@mail.com"
 					/>
-					<label className="block mb-1 font-medium" htmlFor="password">
+					<label
+						className="block mb-1 font-medium"
+						htmlFor="password"
+					>
 						Senha
 					</label>
 					<input
@@ -49,8 +60,12 @@ function Register() {
 				</form>
 			</div>
 			<div className="bg-white rounded-xl p-6 mb-6 w-full max-w-sm">
-				<h3 className="mb-1 font-bold text-xl">Já tem uma conta?</h3>
-				<p className="text-gray-600 mb-4">Entre agora mesmo</p>
+				<h3 className="mb-1 font-bold text-xl">
+					Já tem uma conta?
+				</h3>
+				<p className="text-gray-600 mb-4">
+					Entre agora mesmo
+				</p>
 				<button
 					className="bg-gray-200 w-full hover:bg-gray-300 text-center rounded-2xl p-4 mt-4 cursor-pointer"
 					type="button"

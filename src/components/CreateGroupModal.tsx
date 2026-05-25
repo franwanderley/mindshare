@@ -17,7 +17,8 @@ export function CreateGroupModal({
 	onSuccess,
 }: CreateGroupModalProps) {
 	const [newGroupName, setNewGroupName] = useState("");
-	const [newGroupDescription, setNewGroupDescription] = useState("");
+	const [newGroupDescription, setNewGroupDescription] =
+		useState("");
 	const [creatingGroup, setCreatingGroup] = useState(false);
 
 	if (!isOpen) return null;
@@ -34,7 +35,7 @@ export function CreateGroupModal({
 					description: newGroupDescription,
 					adminId: userId,
 				},
-				authHeader
+				authHeader,
 			);
 
 			if (res.ok) {
@@ -43,7 +44,9 @@ export function CreateGroupModal({
 				onSuccess();
 			} else {
 				const data = await res.json();
-				alert(`Erro ao criar grupo: ${data.error || data.message || "Erro desconhecido"}`);
+				alert(
+					`Erro ao criar grupo: ${data.error || data.message || "Erro desconhecido"}`,
+				);
 			}
 		} catch (err) {
 			console.error(err);
@@ -83,7 +86,10 @@ export function CreateGroupModal({
 					</button>
 				</div>
 
-				<form onSubmit={handleCreateGroup} className="p-6 space-y-4">
+				<form
+					onSubmit={handleCreateGroup}
+					className="p-6 space-y-4"
+				>
 					<div>
 						<label
 							htmlFor="groupName"
@@ -95,7 +101,9 @@ export function CreateGroupModal({
 							id="groupName"
 							type="text"
 							value={newGroupName}
-							onChange={(e) => setNewGroupName(e.target.value)}
+							onChange={(e) =>
+								setNewGroupName(e.target.value)
+							}
 							placeholder="Ex: Projeto Integrador"
 							className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 							required
@@ -113,7 +121,9 @@ export function CreateGroupModal({
 							id="groupDescription"
 							rows={3}
 							value={newGroupDescription}
-							onChange={(e) => setNewGroupDescription(e.target.value)}
+							onChange={(e) =>
+								setNewGroupDescription(e.target.value)
+							}
 							placeholder="Sobre o que é este grupo?"
 							className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
 						></textarea>
