@@ -1,7 +1,11 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { MindShare } from "../assets/mindshare";
+import {
+	type SubmitEvent,
+	useEffect,
+	useState,
+} from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { AuthService } from "../utils/service";
+import { HeaderLogin } from "./HeaderLogin";
 
 export function Login() {
 	const navigate = useNavigate();
@@ -16,7 +20,9 @@ export function Login() {
 		}
 	}, [navigate]);
 
-	const handleSubmit = async (e: React.FormEvent) => {
+	const handleSubmit = async (
+		e: SubmitEvent<HTMLFormElement>,
+	) => {
 		e.preventDefault();
 		setLoading(true);
 		setError("");
@@ -37,8 +43,12 @@ export function Login() {
 
 			localStorage.setItem("token", data.token);
 			navigate("/dashboard");
-		} catch (err: any) {
-			setError(err.message);
+		} catch (err: unknown) {
+			if (err instanceof Error) {
+				setError(err.message);
+			} else {
+				setError(String(err));
+			}
 		} finally {
 			setLoading(false);
 		}
@@ -48,15 +58,7 @@ export function Login() {
 		<div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
 			<div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700">
 				<div className="p-8">
-					<div className="flex flex-col items-center mb-8">
-						<MindShare className="h-16 w-16 mb-4" />
-						<h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-							MindShare
-						</h1>
-						<p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
-							Ideias Colaborativas
-						</p>
-					</div>
+					<HeaderLogin />
 
 					<form
 						onSubmit={handleSubmit}

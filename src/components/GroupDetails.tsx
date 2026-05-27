@@ -163,7 +163,9 @@ export function GroupDetails() {
 		}
 	};
 
-	const handleInviteUser = async (e: React.FormEvent) => {
+	const handleInviteUser = async (
+		e: React.SubmitEvent<HTMLFormElement>,
+	) => {
 		e.preventDefault();
 		if (!inviteEmail.trim() || !userId) return;
 
@@ -193,7 +195,7 @@ export function GroupDetails() {
 					groupId,
 					senderId: userId,
 				},
-				token,
+				authHeader,
 			);
 
 			if (res.ok) {
@@ -598,7 +600,7 @@ export function GroupDetails() {
 										{users.map((user) => (
 											<li
 												key={user.id}
-												className="p-4 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+												className="p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors"
 											>
 												<div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold flex-shrink-0">
 													{user.name
