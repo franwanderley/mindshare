@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-	Link,
-	useNavigate,
-	useParams,
-} from "react-router-dom";
-import { MindShare } from "../assets/mindshare";
+import { useNavigate, useParams } from "react-router-dom";
+import { CommentsIcon } from "../assets/comments";
+import { LikeIcon } from "../assets/like";
+import { TrashIcon } from "../assets/trash";
 import type { Group } from "../types/group";
 import type { Idea } from "../types/ideas";
 import type { User } from "../types/user";
@@ -17,6 +15,7 @@ import {
 } from "../utils/service";
 import { CommentsModal } from "./CommentsModal";
 import { CreateIdeaModal } from "./CreateIdeaModal";
+import { Header } from "./Header";
 
 export function GroupDetails() {
 	const { groupId } = useParams<{ groupId: string }>();
@@ -86,14 +85,13 @@ export function GroupDetails() {
 					authHeader,
 				);
 
-				const groupsRes =
-					await GroupService.getAllGroups(authHeader);
+				const groupRes = await GroupService.getGroupById(
+					groupId,
+					authHeader,
+				);
 
-				if (groupsRes.ok) {
-					const allGroups = await groupsRes.json();
-					const currentGroup = allGroups.find(
-						(g: Group) => g.id === groupId,
-					);
+				if (groupRes.ok) {
+					const currentGroup = await groupRes.json();
 					if (currentGroup) {
 						setGroup(currentGroup);
 						setGroupName(currentGroup.name);
@@ -282,50 +280,10 @@ export function GroupDetails() {
 		}
 	};
 
-	const handleLogout = () => {
-		localStorage.removeItem("token");
-		navigate("/login");
-	};
-
 	return (
 		<div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-			{/* Header */}
-			<header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-					<div className="flex items-center gap-4">
-						<MindShare className="h-10 w-10" />
-						<div className="flex items-center gap-2">
-							<Link
-								to="/dashboard"
-								className="text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium text-sm"
-							>
-								Dashboard
-							</Link>
-							<span className="text-gray-300 dark:text-gray-600">
-								/
-							</span>
-							<h1 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1">
-								{groupName}
-							</h1>
-						</div>
-					</div>
-					<div className="flex items-center gap-4">
-						<span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-							{users.find((u) => u.id === userId)?.name ||
-								"Usuário"}
-						</span>
-						<button
-							type="button"
-							onClick={handleLogout}
-							className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-						>
-							Sair
-						</button>
-					</div>
-				</div>
-			</header>
+			<Header groupName={groupName} />
 
-			{/* Main Content */}
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				{error && (
 					<div className="mb-6 p-4 rounded-lg bg-red-100 text-red-700 border border-red-200 text-sm">
@@ -339,7 +297,6 @@ export function GroupDetails() {
 					</div>
 				) : (
 					<div className="flex flex-col lg:flex-row gap-8">
-						{/* Lista de Ideias (Área Principal) */}
 						<div className="flex-1 space-y-6">
 							<div className="flex items-center justify-between">
 								<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -393,7 +350,6 @@ export function GroupDetails() {
 													{idea.description}
 												</p>
 
-												{/* Botões de Ação */}
 												<div className="flex items-center gap-4 border-t border-gray-100 dark:border-gray-700 pt-4">
 													<button
 														type="button"
@@ -412,25 +368,14 @@ export function GroupDetails() {
 														{likingIdeaId === idea.id ? (
 															<span className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 dark:border-indigo-900 dark:border-t-indigo-400 rounded-full animate-spin"></span>
 														) : (
-															<svg
+															<LikeIcon
 																className="w-5 h-5"
-																aria-hidden="true"
 																fill={
 																	isLikedByMe
 																		? "currentColor"
 																		: "none"
 																}
-																stroke="currentColor"
-																viewBox="0 0 24 24"
-																xmlns="http://www.w3.org/2000/svg"
-															>
-																<path
-																	strokeLinecap="round"
-																	strokeLinejoin="round"
-																	strokeWidth="2"
-																	d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
-																></path>
-															</svg>
+															/>
 														)}
 														Curtir{" "}
 														{idea.likes?.length > 0 &&
@@ -446,21 +391,7 @@ export function GroupDetails() {
 														}
 														className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
 													>
-														<svg
-															className="w-5 h-5"
-															aria-hidden="true"
-															fill="none"
-															stroke="currentColor"
-															viewBox="0 0 24 24"
-															xmlns="http://www.w3.org/2000/svg"
-														>
-															<path
-																strokeLinecap="round"
-																strokeLinejoin="round"
-																strokeWidth="2"
-																d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-															></path>
-														</svg>
+														<CommentsIcon className="w-5 h-5" />
 														Comentários{" "}
 														{idea.comments?.length > 0 &&
 															`(${idea.comments.length})`}
@@ -482,21 +413,7 @@ export function GroupDetails() {
 															idea.id ? (
 																<span className="w-4 h-4 border-2 border-red-200 border-t-red-600 dark:border-red-900 dark:border-t-red-400 rounded-full animate-spin"></span>
 															) : (
-																<svg
-																	className="w-5 h-5"
-																	aria-hidden="true"
-																	fill="none"
-																	stroke="currentColor"
-																	viewBox="0 0 24 24"
-																	xmlns="http://www.w3.org/2000/svg"
-																>
-																	<path
-																		strokeLinecap="round"
-																		strokeLinejoin="round"
-																		strokeWidth="2"
-																		d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-																	></path>
-																</svg>
+																<TrashIcon className="w-5 h-5" />
 															)}
 															{deletingIdeaId === idea.id
 																? "Excluindo..."
@@ -562,21 +479,7 @@ export function GroupDetails() {
 											{deletingGroupId ? (
 												<span className="w-4 h-4 border-2 border-red-200 border-t-red-600 rounded-full animate-spin"></span>
 											) : (
-												<svg
-													className="w-4 h-4"
-													aria-hidden="true"
-													fill="none"
-													stroke="currentColor"
-													viewBox="0 0 24 24"
-													xmlns="http://www.w3.org/2000/svg"
-												>
-													<path
-														strokeLinecap="round"
-														strokeLinejoin="round"
-														strokeWidth="2"
-														d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-													></path>
-												</svg>
+												<TrashIcon className="w-4 h-4" />
 											)}
 											{deletingGroupId
 												? "Excluindo..."

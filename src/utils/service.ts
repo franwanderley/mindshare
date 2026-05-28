@@ -58,6 +58,10 @@ export const GroupService = {
 		fetch(`${API_URL}/groups`, {
 			headers: getHeaders(token),
 		}),
+	getGroupById: (groupId: string, token: string) =>
+		fetch(`${API_URL}/groups/${groupId}`, {
+			headers: getHeaders(token),
+		}),
 	getGroupUsers: (groupId: string, token: string) =>
 		fetch(`${API_URL}/groups/${groupId}/users`, {
 			headers: getHeaders(token),
@@ -137,10 +141,18 @@ export const UserService = {
 };
 
 export const InviteService = {
-	getInvitesByUser: (userId: string, token: string) =>
-		fetch(`${API_URL}/invites/user/${userId}`, {
+	getInvitesByUser: (
+		userId: string,
+		token: string,
+		status?: "PENDING" | "ACCEPTED" | "DECLINED",
+	) => {
+		const url = status
+			? `${API_URL}/invites/user/${userId}?status=${status}`
+			: `${API_URL}/invites/user/${userId}`;
+		return fetch(url, {
 			headers: getHeaders(token),
-		}),
+		});
+	},
 	sendInvite: (
 		data: {
 			receiverId: string;

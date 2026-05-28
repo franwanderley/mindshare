@@ -42,6 +42,11 @@ export function Login() {
 			}
 
 			localStorage.setItem("token", data.token);
+			if (data.user) {
+				localStorage.setItem("user", JSON.stringify(data.user));
+			} else if (data.name) {
+				localStorage.setItem("user", JSON.stringify({ id: data.id, name: data.name, email: data.email }));
+			}
 			navigate("/dashboard");
 		} catch (err: unknown) {
 			if (err instanceof Error) {

@@ -5,16 +5,15 @@ import {
 	useState,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { MindShare } from "../assets/mindshare";
 import type { Group } from "../types/group";
 import type { Invite } from "../types/invite";
 import { decodeJwt } from "../utils/function";
 import {
 	GroupService,
 	InviteService,
-	UserService,
 } from "../utils/service";
 import { CreateGroupModal } from "./CreateGroupModal";
+import { Header } from "./Header";
 
 export function Dashboard() {
 	const navigate = useNavigate();
@@ -29,7 +28,6 @@ export function Dashboard() {
 	const [processingInviteId, setProcessingInviteId] =
 		useState<string | null>(null);
 	const [error, setError] = useState("");
-	const [userName, setUserName] = useState("Usuário");
 	const [
 		isCreateGroupModalOpen,
 		setIsCreateGroupModalOpen,
@@ -45,10 +43,18 @@ export function Dashboard() {
 		? token
 		: `Bearer ${token}`;
 
-	const handleLogout = useCallback(() => {
-		localStorage.removeItem("token");
-		navigate("/login");
-	}, [navigate]);
+	const fetchGroups = useCallback(async () => {
+		if (!userId) return;
+		const res = await GroupService.getGroupsByUser(
+			userId,
+			authHeader,
+		);
+		if (!res.ok) {
+			throw new Error("Erro ao carregar os grupos");
+		}
+		const data = await res.json();
+		setGroups(data);
+	}, [userId, authHeader]);
 
 	useEffect(() => {
 		async function fetchData() {
@@ -62,79 +68,52 @@ export function Dashboard() {
 				setError("");
 
 				// Fetch Groups
-				const groupsRes =
-					await GroupService.getGroupsByUser(
-						userId,
-						authHeader,
-					);
-
-				if (!groupsRes.ok) {
-					throw new Error("Erro ao carregar os grupos");
-				}
-
-				const groupsData = await groupsRes.json();
-				setGroups(groupsData);
-
-				// Fetch All Groups para podermos pegar o nome do grupo do convite
-				const allGroupsRes =
-					await GroupService.getAllGroups(authHeader);
-				if (allGroupsRes.ok) {
-					const allGroupsData = await allGroupsRes.json();
-					const namesMap: Record<string, string> = {};
-					allGroupsData.forEach((g: Group) => {
-						namesMap[g.id] = g.name;
-					});
-					setInviteGroupNames(namesMap);
-				}
+				await fetchGroups();
 
 				// Fetch Invites if userId is known
 				if (userId) {
-					try {
-						const userRes = await UserService.getUserById(
-							userId,
-							authHeader,
-						);
-						if (userRes.ok) {
-							const userData = await userRes.json();
-							if (userData.name) {
-								setUserName(userData.name);
-							} else if (
-								Array.isArray(userData) &&
-								userData.length > 0
-							) {
-								setUserName(userData[0].name);
-							}
-						} else {
-							// Tentar por query string se a rota REST não estiver disponível no json-server
-							const userResQuery =
-								await UserService.getUserByIdQuery(
-									userId,
-									authHeader,
-								);
-							if (userResQuery.ok) {
-								const userDataQuery =
-									await userResQuery.json();
-								if (
-									Array.isArray(userDataQuery) &&
-									userDataQuery.length > 0
-								) {
-									setUserName(userDataQuery[0].name);
-								}
-							}
-						}
-					} catch (e) {
-						console.error("Erro ao carregar usuário:", e);
-					}
-
 					const invitesRes =
 						await InviteService.getInvitesByUser(
 							userId,
 							authHeader,
+							"PENDING",
 						);
 
 					if (invitesRes.ok) {
 						const invitesData = await invitesRes.json();
 						setInvites(invitesData);
+
+						const uniqueGroupIds = Array.from(
+							new Set(
+								invitesData.map(
+									(inv: Invite) => inv.groupId,
+								),
+							),
+						);
+
+						if (uniqueGroupIds.length > 0) {
+							const groupPromises = uniqueGroupIds.map(
+								(id) =>
+									GroupService.getGroupById(
+										id as string,
+										authHeader,
+									)
+										.then((res) =>
+											res.ok ? res.json() : null,
+										)
+										.catch(() => null),
+							);
+							const groupsDetails =
+								await Promise.all(groupPromises);
+
+							const namesMap: Record<string, string> = {};
+							groupsDetails.forEach((g: Group | null) => {
+								if (g?.id) {
+									namesMap[g.id] = g.name;
+								}
+							});
+							setInviteGroupNames(namesMap);
+						}
 					}
 				}
 			} catch (err: unknown) {
@@ -144,7 +123,9 @@ export function Dashboard() {
 						err.message.includes("401") ||
 						err.message.toLowerCase().includes("token")
 					) {
-						handleLogout();
+						localStorage.removeItem("token");
+						localStorage.removeItem("user");
+						navigate("/login");
 					}
 				} else {
 					setError("An unknown error occurred");
@@ -155,7 +136,7 @@ export function Dashboard() {
 		}
 
 		fetchData();
-	}, [token, authHeader, navigate, handleLogout, userId]);
+	}, [token, authHeader, navigate, userId, fetchGroups]);
 
 	const handleInviteReply = async (
 		inviteId: string,
@@ -174,17 +155,7 @@ export function Dashboard() {
 					prev.filter((inv) => inv.id !== inviteId),
 				);
 				if (status === "ACCEPTED") {
-					const decoded = decodeJwt(token);
-					const currentUserId =
-						decoded?.sub || decoded?.id || decoded?.userId;
-
-					const groupsRes =
-						await GroupService.getGroupsByUser(
-							currentUserId,
-							authHeader,
-						);
-					if (groupsRes.ok)
-						setGroups(await groupsRes.json());
+					await fetchGroups();
 				}
 			}
 		} catch (error) {
@@ -197,30 +168,8 @@ export function Dashboard() {
 	return (
 		<div className="min-h-screen bg-gray-50 dark:bg-gray-900">
 			{/* Header */}
-			<header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-					<div className="flex items-center gap-3">
-						<MindShare className="h-10 w-10" />
-						<h1 className="text-xl font-bold text-gray-900 dark:text-white">
-							MindShare
-						</h1>
-					</div>
-					<div className="flex items-center gap-4">
-						<span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-							{userName}
-						</span>
-						<button
-							type="button"
-							onClick={handleLogout}
-							className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-						>
-							Sair
-						</button>
-					</div>
-				</div>
-			</header>
+			<Header />
 
-			{/* Main Content */}
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				{error && (
 					<div className="mb-6 p-4 rounded-lg bg-red-100 text-red-700 border border-red-200 text-sm">
@@ -234,7 +183,6 @@ export function Dashboard() {
 					</div>
 				) : (
 					<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-						{/* Grupos */}
 						<div className="lg:col-span-2 space-y-6">
 							<div className="flex items-center justify-between">
 								<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -289,7 +237,6 @@ export function Dashboard() {
 							)}
 						</div>
 
-						{/* Convites */}
 						<div className="space-y-6 pt-8 mt-8 border-t border-gray-200 dark:border-gray-700 lg:border-t-0 lg:pt-0 lg:mt-0 lg:border-l lg:pl-8">
 							<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
 								Convites Pendentes
@@ -303,68 +250,56 @@ export function Dashboard() {
 								</div>
 							) : (
 								<div className="space-y-3">
-									{invites.map((invite) => {
-										// Apenas exibe se for pendente
-										if (invite.status !== "PENDING")
-											return null;
-
-										return (
-											<div
-												key={invite.id}
-												className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col gap-3"
-											>
-												<p className="text-sm text-gray-800 dark:text-gray-200">
-													Você foi convidado para o grupo{" "}
-													<span className="font-semibold text-indigo-600 dark:text-indigo-400">
-														{
-															inviteGroupNames[
-																invite.groupId
-															]
-														}
-													</span>
-												</p>
-												<div className="flex gap-2 mt-1">
-													<button
-														type="button"
-														disabled={
-															processingInviteId ===
-															invite.id
-														}
-														onClick={() =>
-															handleInviteReply(
-																invite.id,
-																"ACCEPTED",
-															)
-														}
-														className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center h-8"
-													>
-														{processingInviteId ===
-														invite.id ? (
-															<span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-														) : (
-															"Aceitar"
-														)}
-													</button>
-													<button
-														type="button"
-														disabled={
-															processingInviteId ===
-															invite.id
-														}
-														onClick={() =>
-															handleInviteReply(
-																invite.id,
-																"DECLINED",
-															)
-														}
-														className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer border border-gray-200 dark:border-gray-600 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center h-8"
-													>
-														Recusar
-													</button>
-												</div>
+									{invites.map((invite) => (
+										<div
+											key={invite.id}
+											className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col gap-3"
+										>
+											<p className="text-sm text-gray-800 dark:text-gray-200">
+												Você foi convidado para o grupo{" "}
+												<span className="font-semibold text-indigo-600 dark:text-indigo-400">
+													{inviteGroupNames[invite.groupId]}
+												</span>
+											</p>
+											<div className="flex gap-2 mt-1">
+												<button
+													type="button"
+													disabled={
+														processingInviteId === invite.id
+													}
+													onClick={() =>
+														handleInviteReply(
+															invite.id,
+															"ACCEPTED",
+														)
+													}
+													className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center h-8"
+												>
+													{processingInviteId ===
+													invite.id ? (
+														<span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+													) : (
+														"Aceitar"
+													)}
+												</button>
+												<button
+													type="button"
+													disabled={
+														processingInviteId === invite.id
+													}
+													onClick={() =>
+														handleInviteReply(
+															invite.id,
+															"DECLINED",
+														)
+													}
+													className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer border border-gray-200 dark:border-gray-600 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center h-8"
+												>
+													Recusar
+												</button>
 											</div>
-										);
-									})}
+										</div>
+									))}
 								</div>
 							)}
 						</div>
@@ -376,21 +311,15 @@ export function Dashboard() {
 					onClose={() => setIsCreateGroupModalOpen(false)}
 					userId={userId || ""}
 					authHeader={authHeader}
-					onSuccess={() => {
+					onSuccess={async () => {
 						setIsCreateGroupModalOpen(false);
-						if (userId) {
-							GroupService.getGroupsByUser(
-								userId,
-								authHeader,
-							)
-								.then((res) => res.json())
-								.then((data) => setGroups(data))
-								.catch((err) =>
-									console.error(
-										"Erro ao atualizar grupos",
-										err,
-									),
-								);
+						try {
+							await fetchGroups();
+						} catch (err) {
+							console.error(
+								"Erro ao atualizar grupos",
+								err,
+							);
 						}
 					}}
 				/>
