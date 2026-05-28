@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MindShare } from "../assets/mindshare";
 import { AuthService } from "../utils/service";
+import { HeaderLogin } from "./HeaderLogin";
 
 export function Register() {
 	const navigate = useNavigate();
@@ -49,15 +50,11 @@ export function Register() {
 		<div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
 			<div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700">
 				<div className="p-8">
-					<div className="flex flex-col items-center mb-8">
-						<MindShare className="h-16 w-16 mb-4" />
-						<h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-							MindShare
-						</h1>
-						<p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
-							Crie sua conta agora
-						</p>
-					</div>
+					<HeaderLogin />
+
+					<h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6 text-center">
+						Crie sua conta
+					</h2>
 
 					<form
 						onSubmit={handleSubmit}
