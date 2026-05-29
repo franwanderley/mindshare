@@ -2,6 +2,9 @@
 
 O **MindShare** é uma plataforma web colaborativa, moderna e de alto desempenho projetada para o compartilhamento de ideias inovadoras dentro de grupos de trabalho ou estudo. Com foco em uma experiência do usuário premium, o projeto combina funcionalidades robustas com design responsivo refinado.
 
+> [!TIP]
+> Este repositório é o front-end do projeto. O repositório com a API do **back-end** está disponível em: [franwanderley/mindshare-api](https://github.com/franwanderley/mindshare-api).
+
 ---
 
 ## 📸 Captura do Site
