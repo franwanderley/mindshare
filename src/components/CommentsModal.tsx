@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { CloseIcon } from "../assets/close";
 import type { Idea } from "../types/ideas";
 import type { User } from "../types/user";
 import { IdeaService } from "../utils/service";
 import { Loading } from "./Loading";
-
 
 interface CommentsModalProps {
 	isOpen: boolean;
@@ -28,7 +27,9 @@ export function CommentsModal({
 
 	if (!isOpen || !idea) return null;
 
-	const handleAddComment = async (e: React.FormEvent) => {
+	const handleAddComment = async (
+		e: SubmitEvent<HTMLFormElement>,
+	) => {
 		e.preventDefault();
 		if (!newComment.trim()) return;
 

@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CloseIcon } from "../assets/close";
 import { CommentsIcon } from "../assets/comments";
@@ -67,6 +72,22 @@ export function GroupDetails() {
 		? token
 		: `Bearer ${token}`;
 
+	const fetchIdeas = useCallback(async () => {
+		if (!groupId) return;
+		try {
+			const res = await IdeaService.getIdeasByGroup(
+				groupId,
+				authHeader,
+			);
+			if (res.ok) {
+				const data = await res.json();
+				setIdeas(data);
+			}
+		} catch (err) {
+			console.error("Erro ao recarregar ideias", err);
+		}
+	}, [groupId, authHeader]);
+
 	useEffect(() => {
 		async function fetchGroupData() {
 			try {
@@ -80,10 +101,7 @@ export function GroupDetails() {
 
 				setLoading(true);
 
-				const ideasRes = await IdeaService.getIdeasByGroup(
-					groupId,
-					authHeader,
-				);
+				await fetchIdeas();
 
 				const usersRes = await GroupService.getGroupUsers(
 					groupId,
@@ -103,11 +121,6 @@ export function GroupDetails() {
 					} else {
 						setGroupName("Detalhes do Grupo");
 					}
-				}
-
-				if (ideasRes.ok) {
-					const ideasData = await ideasRes.json();
-					setIdeas(ideasData);
 				}
 
 				if (usersRes.ok) {
@@ -140,7 +153,14 @@ export function GroupDetails() {
 		if (groupId) {
 			fetchGroupData();
 		}
-	}, [groupId, token, authHeader, navigate, userId]);
+	}, [
+		groupId,
+		token,
+		authHeader,
+		navigate,
+		userId,
+		fetchIdeas,
+	]);
 
 	const handleLike = async (ideaId: string) => {
 		setLikingIdeaId(ideaId);
@@ -149,15 +169,8 @@ export function GroupDetails() {
 				ideaId,
 				authHeader,
 			);
-			if (res.ok && groupId) {
-				const ideasRes = await IdeaService.getIdeasByGroup(
-					groupId,
-					authHeader,
-				);
-				if (ideasRes.ok) {
-					const ideasData = await ideasRes.json();
-					setIdeas(ideasData);
-				}
+			if (res.ok) {
+				await fetchIdeas();
 			}
 		} catch (err) {
 			console.error("Erro ao curtir a ideia", err);
@@ -260,17 +273,7 @@ export function GroupDetails() {
 				authHeader,
 			);
 			if (res.ok) {
-				if (groupId) {
-					const ideasRes =
-						await IdeaService.getIdeasByGroup(
-							groupId,
-							authHeader,
-						);
-					if (ideasRes.ok) {
-						const ideasData = await ideasRes.json();
-						setIdeas(ideasData);
-					}
-				}
+				await fetchIdeas();
 			} else {
 				const data = await res.json();
 				alert(
@@ -636,18 +639,7 @@ export function GroupDetails() {
 					authHeader={authHeader}
 					onSuccess={() => {
 						setIsCreateIdeaModalOpen(false);
-						if (!groupId) {
-							return;
-						}
-						IdeaService.getIdeasByGroup(groupId, authHeader)
-							.then((res) => res.json())
-							.then((data) => setIdeas(data))
-							.catch((err) =>
-								console.error(
-									"Erro ao recarregar ideias",
-									err,
-								),
-							);
+						fetchIdeas();
 					}}
 				/>
 
@@ -657,21 +649,7 @@ export function GroupDetails() {
 					idea={activeCommentIdea}
 					authHeader={authHeader}
 					users={users}
-					onSuccess={() => {
-						groupId &&
-							IdeaService.getIdeasByGroup(
-								groupId,
-								authHeader,
-							)
-								.then((res) => res.json())
-								.then((data) => setIdeas(data))
-								.catch((err) =>
-									console.error(
-										"Erro ao recarregar ideias",
-										err,
-									),
-								);
-					}}
+					onSuccess={fetchIdeas}
 				/>
 			</main>
 		</div>
