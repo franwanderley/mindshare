@@ -212,7 +212,7 @@ export function Dashboard() {
 										<Link
 											to={`/group/${group.id}`}
 											key={group.id}
-											className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow flex flex-col block"
+											className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow flex flex-col"
 										>
 											<h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-2 line-clamp-1">
 												{group.name}

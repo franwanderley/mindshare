@@ -16,7 +16,10 @@ export function Header({ groupName }: HeaderProps) {
 				return u.name || "Usuário";
 			}
 		} catch (e) {
-			console.error("Erro ao ler usuário do localStorage", e);
+			console.error(
+				"Erro ao ler usuário do localStorage",
+				e,
+			);
 		}
 		return "Usuário";
 	});
@@ -31,7 +34,7 @@ export function Header({ groupName }: HeaderProps) {
 		<header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 				<div className="flex items-center gap-3">
-					<MindShare className="h-10 w-10 flex-shrink-0" />
+					<MindShare className="h-10 w-10 shrink-0" />
 					{groupName ? (
 						<div className="flex items-center gap-2">
 							<Link
@@ -40,7 +43,9 @@ export function Header({ groupName }: HeaderProps) {
 							>
 								Dashboard
 							</Link>
-							<span className="text-gray-300 dark:text-gray-600">/</span>
+							<span className="text-gray-300 dark:text-gray-600">
+								/
+							</span>
 							<h1 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1">
 								{groupName}
 							</h1>

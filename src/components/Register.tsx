@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { MindShare } from "../assets/mindshare";
 import { AuthService } from "../utils/service";
 import { HeaderLogin } from "./HeaderLogin";
 

@@ -428,7 +428,7 @@ export function GroupDetails() {
 							)}
 						</div>
 
-						<aside className="lg:w-80 space-y-6 pt-8 mt-8 border-t border-gray-200 dark:border-gray-700 lg:border-t-0 lg:pt-0 lg:mt-0 lg:border-l lg:pl-8 flex-shrink-0">
+						<aside className="lg:w-80 space-y-6 pt-8 mt-8 border-t border-gray-200 dark:border-gray-700 lg:border-t-0 lg:pt-0 lg:mt-0 lg:border-l lg:pl-8 shrink-0">
 							{group?.adminId === userId && (
 								<div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-indigo-100 dark:border-indigo-900 shadow-sm mb-6">
 									<h3 className="font-bold text-indigo-900 dark:text-indigo-300 mb-3 text-sm uppercase tracking-wider">
@@ -505,7 +505,7 @@ export function GroupDetails() {
 												key={user.id}
 												className="p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors"
 											>
-												<div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold flex-shrink-0">
+												<div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold shrink-0">
 													{user.name
 														.charAt(0)
 														.toUpperCase()}
