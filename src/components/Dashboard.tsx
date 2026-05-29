@@ -14,6 +14,7 @@ import {
 } from "../utils/service";
 import { CreateGroupModal } from "./CreateGroupModal";
 import { Header } from "./Header";
+import { Loading } from "./Loading";
 
 export function Dashboard() {
 	const navigate = useNavigate();
@@ -178,9 +179,7 @@ export function Dashboard() {
 				)}
 
 				{loading ? (
-					<div className="flex justify-center items-center h-64">
-						<div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-					</div>
+					<Loading layout="block" size="lg" color="indigo" text="Carregando seus grupos..." />
 				) : (
 					<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 						<div className="lg:col-span-2 space-y-6">
@@ -277,7 +276,7 @@ export function Dashboard() {
 												>
 													{processingInviteId ===
 													invite.id ? (
-														<span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+														<Loading size="sm" color="white" />
 													) : (
 														"Aceitar"
 													)}

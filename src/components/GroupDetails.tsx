@@ -16,6 +16,7 @@ import {
 import { CommentsModal } from "./CommentsModal";
 import { CreateIdeaModal } from "./CreateIdeaModal";
 import { Header } from "./Header";
+import { Loading } from "./Loading";
 
 export function GroupDetails() {
 	const { groupId } = useParams<{ groupId: string }>();
@@ -292,9 +293,7 @@ export function GroupDetails() {
 				)}
 
 				{loading ? (
-					<div className="flex justify-center items-center h-64">
-						<div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-					</div>
+					<Loading layout="block" size="lg" color="indigo" text="Carregando grupo e ideias..." />
 				) : (
 					<div className="flex flex-col lg:flex-row gap-8">
 						<div className="flex-1 space-y-6">
@@ -366,7 +365,7 @@ export function GroupDetails() {
 														}`}
 													>
 														{likingIdeaId === idea.id ? (
-															<span className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 dark:border-indigo-900 dark:border-t-indigo-400 rounded-full animate-spin"></span>
+															<Loading size="md" color="indigo" />
 														) : (
 															<LikeIcon
 																className="w-5 h-5"
@@ -411,7 +410,7 @@ export function GroupDetails() {
 														>
 															{deletingIdeaId ===
 															idea.id ? (
-																<span className="w-4 h-4 border-2 border-red-200 border-t-red-600 dark:border-red-900 dark:border-t-red-400 rounded-full animate-spin"></span>
+																<Loading size="sm" color="red" />
 															) : (
 																<TrashIcon className="w-5 h-5" />
 															)}
@@ -463,7 +462,7 @@ export function GroupDetails() {
 											className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center h-9"
 										>
 											{inviting ? (
-												<span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+												<Loading size="sm" color="white" />
 											) : (
 												"Enviar Convite"
 											)}
@@ -477,7 +476,7 @@ export function GroupDetails() {
 											className="w-full bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 font-medium py-2 rounded-lg text-sm transition-colors cursor-pointer border border-red-200 dark:border-red-900/50 flex justify-center items-center gap-2 h-9 disabled:opacity-75 disabled:cursor-not-allowed"
 										>
 											{deletingGroupId ? (
-												<span className="w-4 h-4 border-2 border-red-200 border-t-red-600 rounded-full animate-spin"></span>
+												<Loading size="sm" color="red" />
 											) : (
 												<TrashIcon className="w-4 h-4" />
 											)}

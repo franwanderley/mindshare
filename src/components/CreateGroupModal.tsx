@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { CloseIcon } from "../assets/close";
 import { GroupService } from "../utils/service";
+import { Loading } from "./Loading";
+
 
 interface CreateGroupModalProps {
 	isOpen: boolean;
@@ -130,7 +132,7 @@ export function CreateGroupModal({
 							className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer min-w-25"
 						>
 							{creatingGroup ? (
-								<span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+								<Loading size="md" color="white" />
 							) : (
 								"Criar Grupo"
 							)}

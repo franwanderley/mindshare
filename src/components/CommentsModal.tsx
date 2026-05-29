@@ -3,6 +3,8 @@ import { CloseIcon } from "../assets/close";
 import type { Idea } from "../types/ideas";
 import type { User } from "../types/user";
 import { IdeaService } from "../utils/service";
+import { Loading } from "./Loading";
+
 
 interface CommentsModalProps {
 	isOpen: boolean;
@@ -140,7 +142,7 @@ export function CommentsModal({
 							className="px-4 py-2 cursor-pointer font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-20"
 						>
 							{isSubmitting ? (
-								<span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+								<Loading size="sm" color="white" />
 							) : (
 								"Enviar"
 							)}

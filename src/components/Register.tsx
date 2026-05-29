@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthService } from "../utils/service";
 import { HeaderLogin } from "./HeaderLogin";
+import { Loading } from "./Loading";
 
 export function Register() {
 	const navigate = useNavigate();
@@ -135,7 +136,7 @@ export function Register() {
 							className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition-colors focus:ring-4 focus:ring-indigo-500/50 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center shadow-md hover:shadow-lg cursor-pointer"
 						>
 							{loading ? (
-								<span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+								<Loading size="md" color="white" />
 							) : (
 								"Cadastrar"
 							)}
