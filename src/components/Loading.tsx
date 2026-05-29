@@ -97,7 +97,7 @@ export function Loading({
 
 	if (layout === "block") {
 		return (
-			<div className="flex flex-col items-center justify-center py-12 px-4 w-full h-full min-h-[16rem]">
+			<div className="flex flex-col items-center justify-center py-12 px-4 w-full h-full min-h-64">
 				{renderIndicator()}
 				{text && (
 					<p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">

@@ -71,6 +71,11 @@ export const GroupService = {
 			method: "DELETE",
 			headers: getHeaders(token),
 		}),
+	removeMember: (groupId: string, memberId: string, token: string) =>
+		fetch(`${API_URL}/groups/${groupId}/members/${memberId}`, {
+			method: "PATCH",
+			headers: getHeaders(token),
+		}),
 };
 
 export const IdeaService = {

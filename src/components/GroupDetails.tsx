@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { CloseIcon } from "../assets/close";
 import { CommentsIcon } from "../assets/comments";
 import { LikeIcon } from "../assets/like";
 import { TrashIcon } from "../assets/trash";
@@ -45,6 +46,9 @@ export function GroupDetails() {
 	>(null);
 	const [deletingGroupId, setDeletingGroupId] =
 		useState(false);
+	const [removingMemberId, setRemovingMemberId] = useState<
+		string | null
+	>(null);
 
 	const activeCommentIdea = useMemo(() => {
 		return (
@@ -281,6 +285,64 @@ export function GroupDetails() {
 		}
 	};
 
+	const handleRemoveMember = async (
+		userIdToRemove: string,
+	) => {
+		if (!groupId || !group) return;
+
+		const member = group.members?.find(
+			(m) => m.userId === userIdToRemove,
+		);
+		if (!member) {
+			alert("Membro não encontrado neste grupo.");
+			return;
+		}
+
+		const confirmRemove = window.confirm(
+			"Tem certeza que deseja remover este membro do grupo?",
+		);
+		if (!confirmRemove) return;
+
+		setRemovingMemberId(userIdToRemove);
+		try {
+			const res = await GroupService.removeMember(
+				groupId,
+				member.id,
+				authHeader,
+			);
+			if (res.ok) {
+				const usersRes = await GroupService.getGroupUsers(
+					groupId,
+					authHeader,
+				);
+				if (usersRes.ok) {
+					const usersData = await usersRes.json();
+					setUsers(usersData);
+				}
+				const groupRes = await GroupService.getGroupById(
+					groupId,
+					authHeader,
+				);
+				if (groupRes.ok) {
+					const currentGroup = await groupRes.json();
+					if (currentGroup) {
+						setGroup(currentGroup);
+					}
+				}
+			} else {
+				const data = await res.json();
+				alert(
+					`Erro ao remover membro: ${data.message || "Erro desconhecido"}`,
+				);
+			}
+		} catch (err) {
+			console.error("Erro ao remover membro:", err);
+			alert("Erro de conexão ao remover o membro.");
+		} finally {
+			setRemovingMemberId(null);
+		}
+	};
+
 	return (
 		<div className="min-h-screen bg-gray-50 dark:bg-gray-900">
 			<Header groupName={groupName} />
@@ -293,7 +355,12 @@ export function GroupDetails() {
 				)}
 
 				{loading ? (
-					<Loading layout="block" size="lg" color="indigo" text="Carregando grupo e ideias..." />
+					<Loading
+						layout="block"
+						size="lg"
+						color="indigo"
+						text="Carregando grupo e ideias..."
+					/>
 				) : (
 					<div className="flex flex-col lg:flex-row gap-8">
 						<div className="flex-1 space-y-6">
@@ -365,7 +432,10 @@ export function GroupDetails() {
 														}`}
 													>
 														{likingIdeaId === idea.id ? (
-															<Loading size="md" color="indigo" />
+															<Loading
+																size="md"
+																color="indigo"
+															/>
 														) : (
 															<LikeIcon
 																className="w-5 h-5"
@@ -410,7 +480,10 @@ export function GroupDetails() {
 														>
 															{deletingIdeaId ===
 															idea.id ? (
-																<Loading size="sm" color="red" />
+																<Loading
+																	size="sm"
+																	color="red"
+																/>
 															) : (
 																<TrashIcon className="w-5 h-5" />
 															)}
@@ -502,7 +575,7 @@ export function GroupDetails() {
 										{users.map((user) => (
 											<li
 												key={user.id}
-												className="p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+												className="p-4 flex items-center gap-3"
 											>
 												<div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold shrink-0">
 													{user.name
@@ -517,10 +590,34 @@ export function GroupDetails() {
 														{user.email}
 													</p>
 												</div>
-												{user.role === "ADMIN" && (
+												{user.role === "ADMIN" ? (
 													<span className="ml-auto text-[10px] font-bold uppercase bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 px-2 py-0.5 rounded-full">
 														Admin
 													</span>
+												) : (
+													group?.adminId === userId && (
+														<button
+															type="button"
+															disabled={
+																removingMemberId === user.id
+															}
+															onClick={() =>
+																handleRemoveMember(user.id)
+															}
+															className="ml-auto text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer flex items-center justify-center disabled:opacity-55 shrink-0"
+															title="Remover membro do grupo"
+														>
+															{removingMemberId ===
+															user.id ? (
+																<Loading
+																	size="sm"
+																	color="red"
+																/>
+															) : (
+																<CloseIcon className="w-5 h-5" />
+															)}
+														</button>
+													)
 												)}
 											</li>
 										))}
@@ -531,7 +628,6 @@ export function GroupDetails() {
 					</div>
 				)}
 
-				{/* Modal de Criar Ideia */}
 				<CreateIdeaModal
 					isOpen={isCreateIdeaModalOpen}
 					onClose={() => setIsCreateIdeaModalOpen(false)}
@@ -555,7 +651,6 @@ export function GroupDetails() {
 					}}
 				/>
 
-				{/* Modal de Comentários */}
 				<CommentsModal
 					isOpen={!!activeCommentIdeaId}
 					onClose={() => setActiveCommentIdeaId(null)}
