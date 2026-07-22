@@ -4,6 +4,7 @@ import {
 	Route,
 	Routes,
 } from "react-router-dom";
+import { Achievements } from "./components/Achievements";
 import { Dashboard } from "./components/Dashboard";
 import { GroupDetails } from "./components/GroupDetails";
 import { Login } from "./components/Login";
@@ -44,6 +45,14 @@ function App() {
 					element={
 						<ProtectedRoute>
 							<GroupDetails />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/achievements"
+					element={
+						<ProtectedRoute>
+							<Achievements />
 						</ProtectedRoute>
 					}
 				/>
